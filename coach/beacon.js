@@ -10,6 +10,8 @@
 
   let device = null;
   let reconnectTimer = 0;
+  let reconnectDelay = 1000;
+  let reconnectWanted = false;
 
   function setStatus(message) {
     status.textContent = message;
@@ -35,22 +37,40 @@
 
   async function attach(target) {
     device = target;
-    device.addEventListener("gattserverdisconnected", () => {
+    const onDisconnected = () => {
       setStatus("Keyboard disconnected");
       button.textContent = "Connect keyboard";
       button.disabled = false;
-      clearTimeout(reconnectTimer);
-      reconnectTimer = setTimeout(() => connect(false).catch(() => {}), 1500);
-    }, { once: true });
+      scheduleReconnect();
+    };
+    device.addEventListener("gattserverdisconnected", onDisconnected, { once: true });
     setStatus("Connecting…");
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(SERVICE_UUID);
-    const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-    await characteristic.startNotifications();
-    characteristic.addEventListener("characteristicvaluechanged", submitBeacon);
-    setStatus(`Connected · ${device.name || "Charybdis"}`);
-    button.textContent = "Keyboard connected";
-    button.disabled = true;
+    try {
+      const server = await device.gatt.connect();
+      const service = await server.getPrimaryService(SERVICE_UUID);
+      const characteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
+      await characteristic.startNotifications();
+      characteristic.addEventListener("characteristicvaluechanged", submitBeacon);
+      clearTimeout(reconnectTimer);
+      reconnectTimer = 0;
+      reconnectDelay = 1000;
+      setStatus(`Connected · ${device.name || "Charybdis"}`);
+      button.textContent = "Keyboard connected";
+      button.disabled = true;
+    } catch (error) {
+      device.removeEventListener("gattserverdisconnected", onDisconnected);
+      throw error;
+    }
+  }
+
+  function scheduleReconnect() {
+    if (!reconnectWanted || reconnectTimer) return;
+    setStatus("Reconnecting to keyboard…");
+    reconnectTimer = setTimeout(() => {
+      reconnectTimer = 0;
+      connect(false);
+      reconnectDelay = Math.min(reconnectDelay * 2, 15000);
+    }, reconnectDelay);
   }
 
   async function connect(allowPrompt = true) {
@@ -67,17 +87,25 @@
         (candidate.name || "").toLowerCase().includes("charydbis") ||
         (candidate.name || "").toLowerCase().includes("charybdis"));
       if (remembered) {
-        await attach(remembered);
+        reconnectWanted = true;
+        try {
+          await attach(remembered);
+        } catch (error) {
+          setStatus(error?.message || "Could not connect keyboard");
+          scheduleReconnect();
+        }
         return;
       }
       if (!allowPrompt) {
         setStatus("Click Connect keyboard to pair Coach");
+        scheduleReconnect();
         return;
       }
       const selected = await navigator.bluetooth.requestDevice({
         filters: [{ namePrefix: "V&Z-Charydbis" }],
         optionalServices: [SERVICE_UUID]
       });
+      reconnectWanted = true;
       await attach(selected);
     } catch (error) {
       if (error?.name === "NotFoundError") {
@@ -87,6 +115,7 @@
       } else {
         setStatus(error?.message || "Could not connect keyboard");
       }
+      scheduleReconnect();
     }
   }
 
