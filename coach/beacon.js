@@ -39,7 +39,7 @@
     device = target;
     const onDisconnected = () => {
       setStatus("Keyboard disconnected");
-      button.textContent = "Connect keyboard";
+      button.textContent = "Connect over Bluetooth";
       button.disabled = false;
       scheduleReconnect();
     };
@@ -110,7 +110,7 @@
         }
         return;
       }
-      setStatus("Click Connect keyboard to pair Coach");
+      setStatus("USB layer sync is automatic · click for Bluetooth mode");
     } catch (error) {
       connectionError(error);
     }
@@ -135,7 +135,7 @@
       return;
     }
 
-    setStatus("Choose V&Z-Charydbis in the Bluetooth popup…");
+    setStatus("Optional: choose V&Z-Charydbis in the Bluetooth popup…");
     chooser.then(async (selected) => {
       reconnectWanted = true;
       await attach(selected);

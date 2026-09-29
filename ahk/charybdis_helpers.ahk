@@ -95,6 +95,7 @@ global CoachVisible := false
 global CoachFullscreen := false
 global LauncherVisible := false
 global CurrentCoachLayer := "0"
+global CoachBeaconSource := "waiting"
 global LastAction := "Loaded"
 global LastActionAt := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ss") "Z"
 global LastKey := Map("layer", "", "x", "", "y", "", "label", "")
@@ -130,10 +131,14 @@ BuildTrayMenu()
 CreateCoachGui()
 CreateLauncherGui()
 WriteCoachState()
+coachUsbBeaconReady := RegisterCoachRawInput()
 
 TraySetIcon("shell32.dll", 44)
 A_IconTip := "Charybdis helpers active"
-ShowNotice("Charybdis helpers loaded", "Coach, launcher, and F13-F24 helpers are active.")
+coachNotice := "Coach, logger, and launcher are active. USB layer sync registration failed."
+if coachUsbBeaconReady
+    coachNotice := "USB Coach layer sync ready. Bluetooth pairing is not needed over USB."
+ShowNotice("Charybdis helpers loaded", coachNotice)
 
 if HelperConfig["show_coach_on_start"] {
     ShowCoach()
@@ -388,7 +393,7 @@ JsonKeyObject(key) {
 }
 
 WriteCoachState(logEvent := false) {
-    global StatePath, EventLogPath, CurrentCoachLayer, LastAction, LastActionAt, LastKey, HeldLayers, LockedLayer, ToggledLayers, LauncherVisible, HelperConfig
+    global StatePath, EventLogPath, CurrentCoachLayer, CoachBeaconSource, LastAction, LastActionAt, LastKey, HeldLayers, LockedLayer, ToggledLayers, LauncherVisible, HelperConfig
     try {
     EnsureRuntime()
     activeApp := ""
@@ -418,7 +423,7 @@ WriteCoachState(logEvent := false) {
         '"launcherVisible":' (LauncherVisible ? "true" : "false") "," .
         '"transport":' JsonStringValue(transportVal) "," .
         '"beaconAlive":true,' .
-        '"beaconSource":"ahk",' .
+        '"beaconSource":' JsonStringValue(CoachBeaconSource) "," .
         '"beaconPid":' pid "," .
         '"beaconHeartbeatAt":' JsonStringValue(timestamp) "," .
         '"updatedAt":' JsonStringValue(timestamp) .
@@ -1764,7 +1769,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                 }
                 CurrentCoachLayer := layer
                 StartLayerSession(layer)
-                TouchAction("BLE layer " layer " held")
+                    TouchAction("Layer " layer " held")
             } else {
                 EndLayerSession()
                 RemoveLayer(HeldLayers, layer)
@@ -1778,7 +1783,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                     CheckLayerBounce()
                     PreviousLayer := CurrentCoachLayer
                 }
-                TouchAction("BLE layer " layer " released")
+                TouchAction("Layer " layer " released")
             }
         case "lock":
             if layer = "0" || direction = "exit" {
@@ -1802,7 +1807,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                 LastKey := hint.Count ? hint : Map("layer", "", "x", "", "y", "", "label", "")
                 CurrentCoachLayer := "0"
                 PreviousLayer := "0"
-                TouchAction("BLE base layer")
+                TouchAction("Base layer")
             } else {
                 ; Record lock transition before changing layer
                 if PreviousLayer != layer {
@@ -1819,7 +1824,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                 LastKey := hint.Count ? hint : Map("layer", "", "x", "", "y", "", "label", "")
                 CurrentCoachLayer := layer
                 StartLayerSession(layer)
-                TouchAction("BLE layer " layer " locked")
+                TouchAction("Layer " layer " locked")
             }
         case "toggle":
             if direction = "off" || HasArrayValue(ToggledLayers, layer) {
@@ -1841,7 +1846,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                         LastKey := hint
                     }
                 }
-                TouchAction("BLE layer " layer " toggled off")
+                TouchAction("Layer " layer " toggled off")
             } else {
                 ; Record toggle-on transition
                 if PreviousLayer != layer {
@@ -1855,7 +1860,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                 AddUniqueLayer(ToggledLayers, layer)
                 CurrentCoachLayer := layer
                 StartLayerSession(layer)
-                TouchAction("BLE layer " layer " toggled on")
+                TouchAction("Layer " layer " toggled on")
             }
         case "key":
             LastKey := Map("layer", layer, "x", "", "y", "", "label", label)
@@ -2427,6 +2432,77 @@ JoinList(items, separator) {
 ; updated firmware is flashed.
 global PendingRelease := Map()
 
+RegisterCoachRawInput() {
+    rawDevice := Buffer(8 + A_PtrSize, 0)
+    NumPut("UShort", 0xFF00, rawDevice, 0) ; Coach vendor usage page
+    NumPut("UShort", 0x0001, rawDevice, 2) ; Coach beacon collection
+    NumPut("UInt", 0x00000100, rawDevice, 4) ; RIDEV_INPUTSINK
+    NumPut("Ptr", A_ScriptHwnd, rawDevice, 8)
+
+    if !DllCall("RegisterRawInputDevices", "Ptr", rawDevice, "UInt", 1,
+        "UInt", rawDevice.Size, "Int") {
+        return false
+    }
+    OnMessage(0x00FF, HandleCoachRawInput)
+    return true
+}
+
+HandleCoachRawInput(wParam, lParam, msg, hwnd) {
+    headerSize := 8 + (2 * A_PtrSize)
+    size := 0
+    result := DllCall("GetRawInputData", "Ptr", lParam, "UInt", 0x10000003,
+        "Ptr", 0, "UInt*", &size, "UInt", headerSize, "UInt")
+    if result = 0xFFFFFFFF || size < headerSize + 8 {
+        return DllCall("DefWindowProcW", "Ptr", hwnd, "UInt", msg,
+            "UPtr", wParam, "Ptr", lParam, "Ptr")
+    }
+
+    raw := Buffer(size, 0)
+    copied := DllCall("GetRawInputData", "Ptr", lParam, "UInt", 0x10000003,
+        "Ptr", raw, "UInt*", &size, "UInt", headerSize, "UInt")
+    if copied != 0xFFFFFFFF && NumGet(raw, 0, "UInt") = 2 { ; RIM_TYPEHID
+        reportSize := NumGet(raw, headerSize, "UInt")
+        reportCount := NumGet(raw, headerSize + 4, "UInt")
+        dataOffset := headerSize + 8
+        if reportSize >= 6 && reportCount <= 16 && dataOffset + reportSize * reportCount <= raw.Size {
+            Loop reportCount {
+                reportOffset := dataOffset + (A_Index - 1) * reportSize
+                if NumGet(raw, reportOffset, "UChar") != 1
+                    continue
+                magic := NumGet(raw, reportOffset + 1, "UChar")
+                version := NumGet(raw, reportOffset + 2, "UChar")
+                layer := NumGet(raw, reportOffset + 3, "UChar")
+                kind := NumGet(raw, reportOffset + 4, "UChar")
+                pressed := NumGet(raw, reportOffset + 5, "UChar")
+                if magic = 0x43 && version = 1 && layer <= 10 && kind <= 3 && pressed <= 1
+                    ProcessCoachBeacon(layer, kind, pressed, "USB HID")
+            }
+        }
+    }
+
+    return DllCall("DefWindowProcW", "Ptr", hwnd, "UInt", msg,
+        "UPtr", wParam, "Ptr", lParam, "Ptr")
+}
+
+ProcessCoachBeacon(layer, kind, pressed, source := "BLE GATT") {
+    global CoachBeaconSource
+    CoachBeaconSource := source
+    layer := String(layer)
+    switch kind {
+        case 0:
+            CoachBeacon("hold", layer, pressed ? "down" : "up")
+        case 1:
+            if pressed
+                CoachBeacon("toggle", layer, "toggle")
+        case 2:
+            if pressed
+                CoachBeacon("lock", layer, "enter")
+        case 3:
+            if pressed
+                CoachBeacon("lock", "0", "exit")
+    }
+}
+
 PollCoachBeaconQueue() {
     global RuntimeDir, HelperConfig
     port := HelperConfig.Has("coach_server_port") ? HelperConfig["coach_server_port"] : 8765
@@ -2453,19 +2529,7 @@ PollCoachBeaconQueue() {
             layer := fields[1]
             kind := Integer(fields[2])
             pressed := Integer(fields[3])
-            switch kind {
-                case 0:
-                    CoachBeacon("hold", layer, pressed ? "down" : "up")
-                case 1:
-                    if pressed
-                        CoachBeacon("toggle", layer, "toggle")
-                case 2:
-                    if pressed
-                        CoachBeacon("lock", layer, "enter")
-                case 3:
-                    if pressed
-                        CoachBeacon("lock", "0", "exit")
-            }
+            ProcessCoachBeacon(layer, kind, pressed)
         }
     } catch {
         ; Server may be restarting; retry next timer tick.

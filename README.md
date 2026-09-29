@@ -29,7 +29,7 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Keyboard connection
 
-Coach layer tracking uses the Charybdis private BLE beacon service. On first use, open Coach in Microsoft Edge or Chrome and click **Connect keyboard**, then choose `V&Z-Charydbis`. The browser remembers permission and reconnects on later starts. The keyboard needs firmware with the Coach GATT beacon service; regular keyboard HID reports remain unchanged.
+Coach layer tracking works automatically over USB. Firmware sends layer changes on a separate vendor-defined HID interface; the Windows helper reads that private interface, so layer keys never become host keypresses. USB switching between computers requires no Bluetooth pairing. Bluetooth-only use remains available through **Connect over Bluetooth** in Edge or Chrome; it is optional when connected by USB. Both channels require firmware with the Coach beacon feature.
 
 ## Contents
 
