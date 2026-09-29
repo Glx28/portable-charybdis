@@ -8,17 +8,21 @@ from __future__ import annotations
 
 import argparse
 import http.server
+import json
 import mimetypes
 import os
 from pathlib import Path
 import posixpath
 import sys
+import threading
 from urllib.parse import unquote, urlsplit
 
 
 COACH_PREFIX = "/charybdis-coach/"
 STATE_ROUTE = "/charybdis-tools/runtime/charybdis_state.json"
 MAX_PATH_LENGTH = 2048
+BEACON_POST_ROUTE = "/api/coach-beacon"
+BEACON_EVENTS_ROUTE = "/api/beacon-events"
 
 
 def _is_within(path: Path, root: Path) -> bool:
@@ -120,21 +124,72 @@ class CoachRequestHandler(http.server.BaseHTTPRequestHandler):
                 pass
 
     def do_GET(self) -> None:  # noqa: N802 - stdlib API
+        if urlsplit(self.path).path == BEACON_EVENTS_ROUTE:
+            if not self._valid_host():
+                self.send_error(http.HTTPStatus.NOT_FOUND)
+                return
+            with self.server.beacon_events_lock:
+                events = self.server.pending_beacon_events
+                self.server.pending_beacon_events = []
+            body = "".join(f"{layer}\t{kind}\t{pressed}\n" for layer, kind, pressed in events).encode()
+            self.send_response(http.HTTPStatus.OK)
+            self.send_header("Content-Type", "text/plain; charset=utf-8")
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            try:
+                self.wfile.write(body)
+            except OSError:
+                pass
+            return
         self._serve(include_body=True)
 
     def do_HEAD(self) -> None:  # noqa: N802 - stdlib API
         self._serve(include_body=False)
 
     def do_POST(self) -> None:  # noqa: N802 - stdlib API
-        self.send_error(http.HTTPStatus.METHOD_NOT_ALLOWED)
+        if urlsplit(self.path).path != BEACON_POST_ROUTE or not self._valid_host():
+            self.send_error(http.HTTPStatus.NOT_FOUND)
+            return
+        try:
+            length = int(self.headers.get("Content-Length", "0"))
+            if length < 1 or length > 256:
+                raise ValueError("invalid beacon message size")
+            payload = json.loads(self.rfile.read(length).decode("utf-8"))
+            layer, kind, pressed = (payload[key] for key in ("layer", "kind", "pressed"))
+            if any(type(value) is not int for value in (layer, kind, pressed)):
+                raise ValueError("beacon fields must be integers")
+            if not (0 <= layer <= 10 and 0 <= kind <= 3 and pressed in (0, 1)):
+                raise ValueError("beacon fields out of range")
+            if (kind == 0 and layer == 0) or (kind == 1 and (layer == 0 or pressed != 1)):
+                raise ValueError("invalid beacon state")
+            if kind in (2, 3) and pressed != 1:
+                raise ValueError("invalid one-shot beacon state")
+        except (UnicodeDecodeError, json.JSONDecodeError, KeyError, TypeError, ValueError):
+            self.send_error(http.HTTPStatus.BAD_REQUEST)
+            return
+
+        with self.server.beacon_events_lock:
+            if len(self.server.pending_beacon_events) >= 128:
+                self.server.pending_beacon_events.pop(0)
+            self.server.pending_beacon_events.append((layer, kind, pressed))
+        self.send_response(http.HTTPStatus.NO_CONTENT)
+        self.send_header("Content-Length", "0")
+        self.end_headers()
 
     def log_message(self, format: str, *args) -> None:  # noqa: A002 - stdlib signature
+        if urlsplit(self.path).path == BEACON_EVENTS_ROUTE:
+            return
         sys.stderr.write(f"{self.client_address[0]} - {format % args}\n")
 
 
 class CoachHTTPServer(http.server.ThreadingHTTPServer):
     daemon_threads = True
     allow_reuse_address = True
+
+    def __init__(self, server_address, RequestHandlerClass):
+        self.beacon_events_lock = threading.Lock()
+        self.pending_beacon_events = []
+        super().__init__(server_address, RequestHandlerClass)
 
 
 def create_server(

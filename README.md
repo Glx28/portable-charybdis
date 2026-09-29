@@ -27,10 +27,14 @@ When port 8765 is occupied, the launcher finds another free local port and gives
 
 To update, open this folder in PowerShell and run `git pull`, then run `Start-Charybdis.cmd -Action Restart`.
 
+## Keyboard connection
+
+Coach layer tracking uses the Charybdis private BLE beacon service. On first use, open Coach in Microsoft Edge or Chrome and click **Connect keyboard**, then choose `V&Z-Charydbis`. The browser remembers permission and reconnects on later starts. The keyboard needs firmware with the Coach GATT beacon service; regular keyboard HID reports remain unchanged.
+
 ## Contents
 
 - `coach\` — full static browser coach, workflows, and data
-- `ahk\charybdis_helpers.ahk` — desktop coach, shortcut/mouse logger, and suppressing beacon handler
+- `ahk\charybdis_helpers.ahk` — desktop coach, shortcut/mouse logger, and beacon state bridge
 - `keyboard-data\` — Norwegian keyboard map and host preferences used by the helper
 - `python\coach_http_server.py` — restricted loopback-only web server
 - `Start-Charybdis.ps1` — portable runtime setup, start/stop, status, and sign-in shortcut

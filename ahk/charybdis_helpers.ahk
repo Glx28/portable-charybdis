@@ -141,6 +141,7 @@ if HelperConfig["show_coach_on_start"] {
 
 SetTimer(UpdateCoachContext, 1000)
 SetTimer(TrackAppFocus, 1000)
+SetTimer(PollCoachBeaconQueue, 100)
 SetTimer(FlushEventBuffer, FLUSH_INTERVAL)
 SetTimer(FlushPendingRepeat, 2500)
 RotateLogIfNeeded()
@@ -2420,11 +2421,56 @@ JoinList(items, separator) {
 ; =========
 ; Bluetooth HID coach beacons
 ; =========
-; Firmware-side macros can emit these rare chords over BLE. AutoHotkey swallows
-; them and updates runtime\charybdis_state.json for the web coach.
-; Debounce: "up" beacons are delayed 300ms — if a "down" for the same layer
-; arrives within that window, the release is cancelled (spurious key-repeat).
+; New firmware sends layer events over a private BLE GATT notification. The
+; browser forwards them to the loopback Coach server; this timer drains them.
+; Legacy chord hotkeys remain below so older firmware remains usable until
+; updated firmware is flashed.
 global PendingRelease := Map()
+
+PollCoachBeaconQueue() {
+    global RuntimeDir, HelperConfig
+    port := HelperConfig.Has("coach_server_port") ? HelperConfig["coach_server_port"] : 8765
+    portStatePath := RuntimeDir "\coach_server_port.txt"
+    if FileExist(portStatePath) {
+        try {
+            activePort := Trim(FileRead(portStatePath, "UTF-8"))
+            if RegExMatch(activePort, "^\d{1,5}$") && activePort >= 1 && activePort <= 65535
+                port := activePort
+        }
+    }
+
+    try {
+        request := ComObject("WinHttp.WinHttpRequest.5.1")
+        request.SetTimeouts(0, 0, 100, 100)
+        request.Open("GET", "http://127.0.0.1:" port "/api/beacon-events", false)
+        request.Send()
+        if request.Status != 200 || request.ResponseText = ""
+            return
+        for line in StrSplit(request.ResponseText, "`n", "`r") {
+            fields := StrSplit(Trim(line), "`t")
+            if fields.Length != 3
+                continue
+            layer := fields[1]
+            kind := Integer(fields[2])
+            pressed := Integer(fields[3])
+            switch kind {
+                case 0:
+                    CoachBeacon("hold", layer, pressed ? "down" : "up")
+                case 1:
+                    if pressed
+                        CoachBeacon("toggle", layer, "toggle")
+                case 2:
+                    if pressed
+                        CoachBeacon("lock", layer, "enter")
+                case 3:
+                    if pressed
+                        CoachBeacon("lock", "0", "exit")
+            }
+        }
+    } catch {
+        ; Server may be restarting; retry next timer tick.
+    }
+}
 
 DebouncedHoldUp(layer) {
     global PendingRelease
