@@ -26,8 +26,8 @@
       "name": "Task View / virtual desktops",
       "icon": "🗂️",
       "combo": "Win+Tab",
-      "aliases": ["task view", "virtual desktops", "desktops", "timeline", "all windows"],
-      "explanation": "Shows all open windows and virtual desktops; create and switch desktops here."
+      "aliases": ["task view", "virtual desktops", "desktops", "timeline", "all windows", "show all windows", "window overview", "select a window", "click a window"],
+      "explanation": "Shows open windows and virtual desktops in a selectable overview; click a window to open it."
     },
     {
       "name": "Task Manager",
@@ -68,8 +68,15 @@
       "name": "Switch apps",
       "icon": "🔀",
       "combo": "Alt+Tab",
-      "aliases": ["alt tab", "switch apps", "switch window", "app switcher", "cycle windows"],
-      "explanation": "Cycle through open windows. Hold Alt, tap Tab, release to switch."
+      "aliases": ["alt tab", "alt-tab", "alt+tab", "raw alt tab", "raw alt-tab", "switch apps", "switch window", "app switcher", "cycle windows"],
+      "explanation": "Alt+Tab cycles through open windows. For a selectable overview where you can click a window, use Task View (Win+Tab)."
+    },
+    {
+      "name": "Voice typing",
+      "icon": "🎙️",
+      "combo": "Win+H",
+      "aliases": ["voice typing", "voice dictation", "dictation", "speech to text", "speech recognition", "windows h"],
+      "explanation": "Opens Windows voice typing in the focused text field."
     },
     {
       "name": "Close window",
