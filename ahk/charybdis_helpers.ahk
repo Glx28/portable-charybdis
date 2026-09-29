@@ -1487,16 +1487,26 @@ FileDeleteSafe(path) {
 
 CoachActiveLayer() {
     global HeldLayers, LockedLayer, ToggledLayers
-    if HasArrayValue(ToggledLayers, "8") {
-        return "8"
-    }
     if LockedLayer {
         return LockedLayer
     }
-    if HeldLayers.Length {
-        return HeldLayers[HeldLayers.Length]
+
+    ; ZMK resolves simultaneously active layers by layer priority (highest
+    ; numbered active layer wins). Include toggled layers as well as held
+    ; layers so releasing a temporary scroll/overlay hold returns to the
+    ; actual underlying layer instead of falsely falling back to L0.
+    activeLayer := "0"
+    for layer in ToggledLayers {
+        if Integer(layer) > Integer(activeLayer) {
+            activeLayer := layer
+        }
     }
-    return "0"
+    for layer in HeldLayers {
+        if Integer(layer) > Integer(activeLayer) {
+            activeLayer := layer
+        }
+    }
+    return activeLayer
 }
 
 AddUniqueLayer(list, layer) {
