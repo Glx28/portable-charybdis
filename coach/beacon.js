@@ -73,7 +73,21 @@
     }, reconnectDelay);
   }
 
-  async function connect(allowPrompt = true) {
+  function connectionError(error, showPopup = false) {
+    let message;
+    if (error?.name === "NotFoundError") {
+      message = "Keyboard chooser closed or no Charybdis selected";
+    } else if (error?.name === "SecurityError" || error?.name === "NotSupportedError") {
+      message = "Bluetooth unavailable. Open Coach in Edge or Chrome using localhost";
+    } else {
+      message = error?.message || "Could not connect keyboard";
+    }
+    setStatus(message);
+    if (showPopup) window.alert(`Charybdis Coach could not connect:\n${message}`);
+    scheduleReconnect();
+  }
+
+  async function connect() {
     if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== "function") {
       setStatus("Use Edge or Chrome for keyboard connection");
       button.disabled = true;
@@ -96,34 +110,41 @@
         }
         return;
       }
-      if (!allowPrompt) {
-        setStatus("Click Connect keyboard to pair Coach");
-        scheduleReconnect();
-        return;
-      }
-      const selected = await navigator.bluetooth.requestDevice({
-        filters: [{ namePrefix: "V&Z-Charydbis" }],
-        optionalServices: [SERVICE_UUID]
-      });
-      reconnectWanted = true;
-      await attach(selected);
+      setStatus("Click Connect keyboard to pair Coach");
     } catch (error) {
-      if (error?.name === "NotFoundError") {
-        setStatus("Charybdis not found · check Bluetooth");
-      } else if (error?.name === "SecurityError" || error?.name === "NotSupportedError") {
-        setStatus("Bluetooth connection unavailable in this browser");
-      } else {
-        setStatus(error?.message || "Could not connect keyboard");
-      }
-      scheduleReconnect();
+      connectionError(error);
     }
   }
 
-  button.addEventListener("click", () => connect(true));
+  button.addEventListener("click", () => {
+    if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== "function") {
+      connectionError(new Error("Use Edge or Chrome on localhost for Bluetooth"), true);
+      return;
+    }
+
+    // requestDevice must run directly inside the click gesture; awaiting getDevices first
+    // causes browsers to suppress the chooser as an untrusted request.
+    let chooser;
+    try {
+      chooser = navigator.bluetooth.requestDevice({
+        filters: [{ namePrefix: "V&Z-Charydbis" }],
+        optionalServices: [SERVICE_UUID]
+      });
+    } catch (error) {
+      connectionError(error, true);
+      return;
+    }
+
+    setStatus("Choose V&Z-Charydbis in the Bluetooth popup…");
+    chooser.then(async (selected) => {
+      reconnectWanted = true;
+      await attach(selected);
+    }).catch((error) => connectionError(error, true));
+  });
   if (!navigator.bluetooth || typeof navigator.bluetooth.requestDevice !== "function") {
     setStatus("Use Edge or Chrome for keyboard connection");
     button.disabled = true;
   } else {
-    connect(false);
+    connect();
   }
 })();
