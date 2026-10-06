@@ -27,6 +27,21 @@ When port 8765 is occupied, the launcher finds another free local port and gives
 
 To update, open this folder in PowerShell and run `git pull`, then run `Start-Charybdis.cmd -Action Restart`.
 
+## Current keyboard layout
+
+`keyboard-data\layout\keybindings_explained.csv` and `final_user_layout_v2.json`
+record the gen500 checkpoint from
+`validated_30k_20261006T111057Z` (bestgen494), with the owner-directed AltGr/L6-hold swap. L0 keeps LeftAlt; RightAlt (AltGr) is on reachable L10; L6 hold replaces it on L0. The matching `apply_every_key.js` and `verify_every_key.js` are self-contained ZMK Studio scripts. To program the
+keyboard, connect it by USB, open https://zmk.studio in Chrome or Edge, paste and
+run `apply_every_key.js` in DevTools, confirm the prompt, click Save in ZMK
+Studio, then run `verify_every_key.js`. The layout metadata stays unverified until
+that verification succeeds.
+
+The Coach key map is explicitly Windows Norwegian (`nb-NO`). Keep Windows set
+to Norwegian: `<` and `>` use the `Non-US Backslash and Pipe` key, and third-
+level symbols use Right Alt (AltGr). The portable helper reports USB beacon
+readiness as soon as it registers the keyboard's private HID interface.
+
 ## Keyboard connection
 
 Coach layer tracking works automatically over USB. Firmware sends layer changes on a separate vendor-defined HID interface; the Windows helper reads that private interface, so layer keys never become host keypresses. USB switching between computers requires no Bluetooth pairing. Bluetooth-only use remains available through **Connect over Bluetooth** in Edge or Chrome; it is optional when connected by USB. Both channels require firmware with the Coach beacon feature.

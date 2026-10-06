@@ -26,6 +26,7 @@
     beaconBanner: document.getElementById("beaconBanner"),
     beaconBannerTitle: document.getElementById("beaconBannerTitle"),
     beaconBannerDetail: document.getElementById("beaconBannerDetail"),
+    beaconBannerClose: document.getElementById("beaconBannerClose"),
     deviceLabel: document.getElementById("deviceLabel"),
     layerTabs: document.getElementById("layerTabs"),
     keyboardMap: document.getElementById("keyboardMap"),
@@ -86,6 +87,7 @@
     progress: {},
     uiIcons: false,
     inspectorAutoExpanded: false,
+    beaconBannerDismissed: false,
     lastSeenActionKey: null,
     missedReadCount: 0
   };
@@ -491,7 +493,7 @@
 
   const SINGLE_LETTER_ACTION_MAP = [
     [/^c$/i, /^l ctrl$/i, { emoji: "📄", action: "Copy" }],
-    [/^v$/i, /^l ctrl$/i, { emoji: "📥", action: "Paste" }],
+    [/^v$/i, /^l ctrl$/i, { emoji: "📋", action: "Paste" }],
     [/^v$/i, /gui/i, { emoji: "🗂️", action: "ClipHist" }],
     [/^x$/i, /^l ctrl$/i, { emoji: "✂️", action: "Cut" }],
     [/^z$/i, /^l ctrl$/i, { emoji: "↩️", action: "Undo" }],
@@ -516,7 +518,7 @@
     [/^r$/i, /gui/i, { emoji: "▶️", action: "Run" }],
     [/^r$/i, /^l ctrl$/i, { emoji: "🔃", action: "Refresh" }],
     [/^l$/i, /gui/i, { emoji: "🔒", action: "Lock" }],
-    [/^l$/i, /^l ctrl$/i, { emoji: "📍", action: "AddrBar" }],
+    [/^l$/i, /^l ctrl$/i, { emoji: "🌐", action: "AddrBar" }],
     [/^i$/i, /gui/i, { emoji: "⚙️", action: "Settings" }],
     [/^i$/i, /^l ctrl$/i, { emoji: "ℹ️", action: "Info" }],
     [/^t$/i, /gui/i, { emoji: "🧲", action: "Taskbar" }],
@@ -546,7 +548,7 @@
 
   const KEYCAP_EMOJI_RULES = [
     [/^copy$/i, null, "📄"],
-    [/^paste$/i, null, "📥"],
+    [/^paste$/i, null, "📋"],
     [/^cut$/i, null, "✂️"],
     [/^undo$/i, null, "↩️"],
     [/^redo$/i, null, "↪️"],
@@ -665,7 +667,7 @@
     [/^insln$/i, null, "➕"],
     [/^open$/i, null, "📂"],
     [/^peek$/i, null, "👁️"],
-    [/^goln$/i, null, "📍"],
+    [/^goln$/i, null, "🔢"],
     [/^brkt$/i, null, "🔗"],
     [/^sett$/i, null, "⚙️"],
     [/^delln$/i, null, "🗑️"],
@@ -675,14 +677,14 @@
     [/^outdn$/i, null, "⬅️"],
     [/^toggle$/i, null, "🔀"],
     [/^copy$/i, null, "📄"],
-    [/^paste$/i, null, "📥"],
+    [/^paste$/i, null, "📋"],
     [/^undo$/i, null, "↩️"],
     [/^redo$/i, null, "↪️"],
     [/^snip$/i, null, "📸"],
     [/^zoom in$/i, null, "🔭"],
     [/^zoom out$/i, null, "🔬"],
     [/^close win$/i, null, "💥"],
-    [/^minall$/i, null, "⏬"],
+    [/^minall$/i, null, "🧺"],
     [/^cliph$/i, null, "🗂️"],
     [/^lang$/i, null, "🌐"],
     [/^tskmg$/i, null, "📊"],
@@ -2022,7 +2024,7 @@
   }
 
   function beaconStatus(live) {
-    const restartHint = "Run scripts\\windows\\start_charybdis_coach.ps1 or restart_beacon_listener.ps1.";
+    const restartHint = "Start Charybdis Coach from its Windows launcher to restore layer sync.";
     if (!live) {
       return {
         level: "error",
@@ -2052,7 +2054,7 @@
         : "warn";
       const title = explicitDead ? "Beacon listener stopped" : "Beacon not responding";
       let detail = `Layer thumb sync is offline`;
-      if (ageSec != null) detail += ` (${ageSec}s since last signal)`;
+      if (ageSec != null) detail += ` (${formatBeaconAge(ageSec)} since last signal)`;
       if (source) detail += `. Last source: ${source}`;
       if (!hasBeaconMeta) detail += ". State file has no beacon heartbeat — listener may be dead or an old build.";
       detail += `. ${restartHint}`;
@@ -2063,7 +2065,7 @@
         ageSec,
         title,
         detail,
-        transportLabel: ageSec != null ? `No beacon (${ageSec}s)` : "No beacon",
+        transportLabel: ageSec != null ? `No beacon (${formatBeaconAge(ageSec)})` : "No beacon",
         source
       };
     }
@@ -2091,7 +2093,8 @@
   function renderBeaconBanner(live) {
     if (!els.beaconBanner) return;
     const status = beaconStatus(live);
-    const show = status.stale;
+    if (!status.stale) state.beaconBannerDismissed = false;
+    const show = status.stale && !state.beaconBannerDismissed;
     els.beaconBanner.hidden = !show;
     els.beaconBanner.classList.toggle("beacon-banner--hidden", !show);
     els.beaconBanner.classList.remove("beacon-banner--ok", "beacon-banner--warn", "beacon-banner--error");
@@ -2101,6 +2104,18 @@
     if (els.beaconBannerTitle) els.beaconBannerTitle.textContent = status.title;
     if (els.beaconBannerDetail) els.beaconBannerDetail.textContent = status.detail;
   }
+
+  function formatBeaconAge(seconds) {
+    if (seconds >= 86400) return `${Math.floor(seconds / 86400)}d`;
+    if (seconds >= 3600) return `${Math.floor(seconds / 3600)}h ${Math.floor((seconds % 3600) / 60)}m`;
+    if (seconds >= 60) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`;
+    return `${seconds}s`;
+  }
+
+  els.beaconBannerClose?.addEventListener("click", () => {
+    state.beaconBannerDismissed = true;
+    renderBeaconBanner(null);
+  });
 
   // updatedAt only proves the state file heartbeat is fresh, not that lastAction
   // is current - the writer (AHK/Python) can hold the same lastAction text
@@ -2196,6 +2211,12 @@
   }
 
   function deriveLiveLayer(live) {
+    // State writers publish activeLayer as the resolved physical state. Prefer
+    // it over independently combining held/toggled lists, which may lag a base
+    // return while release beacons are still being processed.
+    if (live && live.activeLayer !== undefined && live.activeLayer !== null && String(live.activeLayer) !== "") {
+      return String(live.activeLayer);
+    }
     // Dynamic priority: explicit lock, active hold, latest toggle, then base.
     if (!live) return state.liveLayer;
     const toggled = normalizeLayerList(live.toggledLayers);

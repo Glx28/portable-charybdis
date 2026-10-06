@@ -1683,21 +1683,28 @@ EmitShortcutWorkflowWindow(reason := "snapshot") {
     BufferEvent(evt)
 }
 
-LayerKeyHint(kind, layer) {
+LayerKeyHint(kind, layer, sourceLayer := "") {
     global LayoutRows
     layer := String(layer)
     behavior := CoachBehaviorForAccess(kind, layer)
     if behavior {
+        fallback := Map()
         for row in LayoutRows {
             if row.Has("behavior") && row["behavior"] = behavior {
-                return Map(
+                hint := Map(
                     "layer", row.Has("layer") ? row["layer"] : "",
                     "x", row.Has("x") ? row["x"] : "",
                     "y", row.Has("y") ? row["y"] : "",
                     "label", row.Has("visual_label") && row["visual_label"] ? row["visual_label"] : behavior
                 )
+                if !fallback.Count
+                    fallback := hint
+                if sourceLayer != "" && row.Has("layer") && String(row["layer"]) = String(sourceLayer)
+                    return hint
             }
         }
+        if fallback.Count
+            return fallback
     }
     return Map()
 }
@@ -1761,7 +1768,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                     PreviousLayer := layer
                 }
                 AddUniqueLayer(HeldLayers, layer)
-                hint := LayerKeyHint("hold", layer)
+                hint := LayerKeyHint("hold", layer, CoachActiveLayer())
                 if hint.Count {
                     LastKey := hint
                 } else {
@@ -1800,9 +1807,9 @@ CoachBeacon(kind, layer, direction, label := "") {
                 LockedLayer := ""
                 HeldLayers := []
                 ToggledLayers := []
-                hint := LayerKeyHint("exit", exiting)
+                hint := LayerKeyHint("exit", exiting, exiting)
                 if !hint.Count {
-                    hint := LayerKeyHint("base", "0")
+                    hint := LayerKeyHint("base", "0", exiting)
                 }
                 LastKey := hint.Count ? hint : Map("layer", "", "x", "", "y", "", "label", "")
                 CurrentCoachLayer := "0"
@@ -1820,7 +1827,7 @@ CoachBeacon(kind, layer, direction, label := "") {
                 }
                 HeldLayers := []
                 LockedLayer := layer
-                hint := LayerKeyHint("lock", layer)
+                hint := LayerKeyHint("lock", layer, CoachActiveLayer())
                 LastKey := hint.Count ? hint : Map("layer", "", "x", "", "y", "", "label", "")
                 CurrentCoachLayer := layer
                 StartLayerSession(layer)
@@ -2433,6 +2440,7 @@ JoinList(items, separator) {
 global PendingRelease := Map()
 
 RegisterCoachRawInput() {
+    global CoachBeaconSource
     rawDevice := Buffer(8 + A_PtrSize, 0)
     NumPut("UShort", 0xFF00, rawDevice, 0) ; Coach vendor usage page
     NumPut("UShort", 0x0001, rawDevice, 2) ; Coach beacon collection
@@ -2441,9 +2449,13 @@ RegisterCoachRawInput() {
 
     if !DllCall("RegisterRawInputDevices", "Ptr", rawDevice, "UInt", 1,
         "UInt", rawDevice.Size, "Int") {
+        CoachBeaconSource := "ahk-usb-registration-failed"
+        WriteCoachState()
         return false
     }
     OnMessage(0x00FF, HandleCoachRawInput)
+    CoachBeaconSource := "ahk-usb-ready"
+    WriteCoachState()
     return true
 }
 

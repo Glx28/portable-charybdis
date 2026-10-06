@@ -213,6 +213,23 @@ svg {
   color: var(--muted);
 }
 
+.beacon-banner__close {
+  flex: 0 0 auto;
+  margin-left: auto;
+  border: 0;
+  border-radius: 6px;
+  padding: 2px 8px;
+  color: inherit;
+  background: transparent;
+  font: inherit;
+  font-size: 20px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.beacon-banner__close:hover,
+.beacon-banner__close:focus-visible { background: rgb(127 127 127 / 18%); }
+
 .status-pill span {
   display: block;
   color: var(--muted);
