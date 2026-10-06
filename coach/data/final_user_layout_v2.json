@@ -620,11 +620,11 @@
       "layer": 0,
       "x": 5,
       "y": 4,
-      "behavior": "coach_l6_hold",
+      "behavior": "coach_l1_hold",
       "parameter": "",
       "modifiers": [],
-      "label": "L6",
-      "rationale": "evolved: Dynamic layer access: @access:L6:hold",
+      "label": "L1",
+      "rationale": "evolved: Dynamic layer access: @access:L1:hold",
       "optimizer_changed": true,
       "apply_batch": true
     },
@@ -2844,11 +2844,11 @@
       "layer": 3,
       "x": 7,
       "y": 4,
-      "behavior": "coach_l4_hold",
+      "behavior": "coach_l6_hold",
       "parameter": "",
       "modifiers": [],
-      "label": "L4",
-      "rationale": "evolved: Dynamic layer access: @access:L4:hold",
+      "label": "L6",
+      "rationale": "evolved: Dynamic layer access: @access:L6:hold",
       "optimizer_changed": true,
       "apply_batch": true
     },
@@ -5029,11 +5029,11 @@
       "layer": 6,
       "x": 7,
       "y": 4,
-      "behavior": "coach_l1_hold",
+      "behavior": "coach_l4_hold",
       "parameter": "",
       "modifiers": [],
-      "label": "L1",
-      "rationale": "evolved: Dynamic layer access: @access:L1:hold",
+      "label": "L4",
+      "rationale": "evolved: Dynamic layer access: @access:L4:hold",
       "optimizer_changed": true,
       "apply_batch": true
     },
@@ -7954,44 +7954,52 @@
       "apply_batch": true
     }
   ],
-  "name": "run41_latest_altgr_deeper_l6_l0_hold gen500 (best gen 494; owner-fixed)",
-  "source_run": "run_run40_latest_gen500",
+  "name": "l0_l1_hold_replacement gen500 (best gen 494; owner-directed)",
+  "source_run": "validated_30k_20261006T111057Z",
   "source_generation": 500,
   "best_generation": 494,
-  "source_apply_script": "scripts/zmk-studio/apply_every_key.js",
-  "source_verify_script": "scripts/zmk-studio/verify_every_key.js",
-  "source_csv": "layout/keybindings_explained.csv",
+  "source_apply_script": "/home/nos/charybdis/charybdis-zmk-config/scripts/zmk-studio/apply_every_key.js",
+  "source_verify_script": "/home/nos/charybdis/charybdis-zmk-config/scripts/zmk-studio/verify_every_key.js",
+  "source_csv": "/home/nos/charybdis/charybdis-zmk-config/layout/keybindings_explained.csv",
   "verified_in_zmk_studio": false,
   "verify_result": {
     "pass": null,
     "fail": null,
     "percent": null,
-    "note": "Owner-directed swap: LeftAlt stays on L0; L6 hold replaces RightAlt on L0; RightAlt moves to reachable L10. Physical ZMK Studio verification is pending."
+    "note": "Owner confirmed layout applied in ZMK Studio on 2026-10-06; post-apply generated verification was not completed in this session."
   },
   "score_summary": {
-    "run": "run41_latest_altgr_deeper_l6_l0_hold",
+    "run": "validated_30k_20261006T111057Z",
     "best_generation": 494,
-    "score": 86594.312,
-    "score_delta_vs_checkpoint_under_fixed_policy": -2885.133
+    "objective_vector_current_code": [
+      0.9013576507568359,
+      -52.588523864746094,
+      86225.6953125
+    ],
+    "note": "Owner-directed genome re-audited with current optimizer code against the saved run snapshot; do not compare directly with earlier score metadata."
   },
-  "owner_fixed_delta": {
-    "from_checkpoint": "validated_30k_20261006T111057Z/v2_checkpoint_gen500.json",
-    "swap": [
+  "source_checkpoint": "build/runs/validated_30k_20261006T111057Z/v2_checkpoint_gen500.json",
+  "owner_directed_delta": {
+    "reason": "Replace unwanted L6 hold on L0 with L1 hold; preserve LeftAlt on L0 and RightAlt (AltGr) on reachable L10.",
+    "cycle": [
       {
         "layer": 0,
         "x": 5,
         "y": 4,
-        "from": "RightAlt",
-        "to": "L6 hold"
+        "behavior": "coach_l1_hold"
       },
       {
-        "layer": 10,
-        "x": 4,
+        "layer": 3,
+        "x": 7,
         "y": 4,
-        "from": "L6 hold",
-        "to": "RightAlt"
+        "behavior": "coach_l6_hold"
+      },
+      {
+        "layer": 6,
+        "x": 7,
+        "y": 4,
+        "behavior": "coach_l4_hold"
       }
-    ],
-    "reason": "Keep only shortcut LeftAlt on L0; preserve reachable Norwegian AltGr on a deeper layer."
+    ]
   }
 }
