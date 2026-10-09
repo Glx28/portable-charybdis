@@ -23,6 +23,8 @@ You need Windows 10/11, internet access for the first launch, and Git to clone/p
 - `Start-Charybdis.cmd -Action InstallStartup` — start automatically at Windows sign-in
 - `Start-Charybdis.cmd -Action UninstallStartup` — remove automatic startup
 
+For input fault diagnosis, run `runtime\dependencies\autohotkey-2.0.28\AutoHotkey64.exe ahk\device_diagnostic.ahk`. It passively records physical key identifiers and mouse movement to `runtime\device_diagnostic.jsonl`; it does not capture typed characters or consume input. Exit from its tray icon menu.
+
 When port 8765 is occupied, the launcher finds another free local port and gives the coach that port. The browser coach is available from the helper tray menu as “Open Web Coach.”
 
 To update, open this folder in PowerShell and run `git pull`, then run `Start-Charybdis.cmd -Action Restart`.

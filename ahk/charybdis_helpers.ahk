@@ -2216,7 +2216,14 @@ CreateLauncherGui() {
     LauncherEdit := LauncherGui.AddEdit("w560 h30")
     LauncherGui.SetFont("s9 cAAB4C0", "Segoe UI")
     LauncherHint := LauncherGui.AddText("w560 h64", LauncherHelpText())
+    LauncherGui.OnEvent("Close", HandleLauncherClose)
+    LauncherGui.OnEvent("Escape", HandleLauncherClose)
     LauncherEdit.OnEvent("Change", (*) => UpdateLauncherHint())
+}
+
+HandleLauncherClose(*) {
+    HideLauncher()
+    return true
 }
 
 LauncherHelpText(prefix := "") {
