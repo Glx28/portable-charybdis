@@ -31,11 +31,9 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the logger-informed gen500 review candidate from `validated_500_20261025T065802Z`. Its repaired candidate passes the frozen optimizer acceptance and exporter checks. The dynamic mouse layer is L5; 18 of the top 20 logged global shortcuts are placed there, including Ctrl+V and Ctrl+C at effort 1.25. This is a reviewed repair derived from the gen500 population, not the optimizer run’s invalid saved archive.
+`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the review candidate `owner_feedback_mouse_low_effort_recheck_gen12000.json` from the active 30k run. It is the gen6500 clipboard-cluster repair re-evaluated at gen12000. Against the frozen logger snapshot (58,635 events), its dynamic mouse layer is L5 and covers 20/20 eligible mouse-session shortcuts at mean effort 0.7375. Ctrl+V (304 logged mouse-session uses) and Ctrl+C (192) are both at effort 0. All nine numeric constraints, the frozen optimizer contract, and exporter acceptance pass; Norwegian bad-literal count is zero. Its gap is 87088.490, versus 141192.265 for the previously live layout under the same config and logger snapshot.
 
-The layout bundle records `verified_in_zmk_studio: false`: host-side export checks do not confirm the keyboard’s programmed state. Use Microsoft Edge to connect the keyboard, apply `keyboard-data\layout\apply_every_key.js`, save in Studio, then run `verify_every_key.js`.
-
-The Coach key map is explicitly Windows Norwegian (`nb-NO`). Keep Windows set to Norwegian: `<` and `>` use the `Non-US Backslash and Pipe` key, and third-level symbols use Right Alt (AltGr). The portable helper reports USB beacon readiness as soon as it registers the keyboard's private HID interface.
+The layout bundle records `verified_in_zmk_studio: false`; export checks do not verify the keyboard's programmed state. Use Microsoft Edge to connect the keyboard, apply `keyboard-data\layout\apply_every_key.js`, save in Studio, then run `verify_every_key.js`.
 
 ## Keyboard connection
 
