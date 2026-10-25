@@ -31,21 +31,11 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-`keyboard-data\layout\keybindings_explained.csv` and `final_user_layout_v2.json`
-record the gen500 checkpoint from
-`validated_30k_20261006T111057Z` (bestgen494), with the owner-directed L6
-replacement. L0 has the L1 hold and LeftAlt; L3 has the L6 hold; L6 has the L4
-hold; RightAlt (AltGr) remains reachable on L10. The matching
-`apply_every_key.js` and `verify_every_key.js` are self-contained ZMK Studio
-scripts. The owner confirmed this layout was applied in ZMK Studio on 2026-10-06;
-the repository's Studio verification flag remains false until the generated
-verifier passes. Use Microsoft Edge to connect the keyboard, apply the script,
-save in Studio, then run the verifier.
+`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the logger-informed gen500 review candidate from `validated_500_20261025T065802Z`. Its repaired candidate passes the frozen optimizer acceptance and exporter checks. The dynamic mouse layer is L5; 18 of the top 20 logged global shortcuts are placed there, including Ctrl+V and Ctrl+C at effort 1.25. This is a reviewed repair derived from the gen500 population, not the optimizer run’s invalid saved archive.
 
-The Coach key map is explicitly Windows Norwegian (`nb-NO`). Keep Windows set
-to Norwegian: `<` and `>` use the `Non-US Backslash and Pipe` key, and third-
-level symbols use Right Alt (AltGr). The portable helper reports USB beacon
-readiness as soon as it registers the keyboard's private HID interface.
+The layout bundle records `verified_in_zmk_studio: false`: host-side export checks do not confirm the keyboard’s programmed state. Use Microsoft Edge to connect the keyboard, apply `keyboard-data\layout\apply_every_key.js`, save in Studio, then run `verify_every_key.js`.
+
+The Coach key map is explicitly Windows Norwegian (`nb-NO`). Keep Windows set to Norwegian: `<` and `>` use the `Non-US Backslash and Pipe` key, and third-level symbols use Right Alt (AltGr). The portable helper reports USB beacon readiness as soon as it registers the keyboard's private HID interface.
 
 ## Keyboard connection
 
