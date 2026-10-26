@@ -31,9 +31,11 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the review candidate `owner_feedback_mouse_low_effort_recheck_gen12000.json` from the active 30k run. It is the gen6500 clipboard-cluster repair re-evaluated at gen12000. Against the frozen logger snapshot (58,635 events), its dynamic mouse layer is L5 and covers 20/20 eligible mouse-session shortcuts at mean effort 0.7375. Ctrl+V (304 logged mouse-session uses) and Ctrl+C (192) are both at effort 0. All nine numeric constraints, the frozen optimizer contract, and exporter acceptance pass; Norwegian bad-literal count is zero. Its gap is 87088.490, versus 141192.265 for the previously live layout under the same config and logger snapshot.
+`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the gen6500 owner-feedback checkpoint re-evaluated at gen12000. Its 616 key positions are unchanged by the self-layer lock fix; same-layer toggles on L1–L10 now use lock-on behaviors, including the requested L7 self-toggle at `(8,4)`. The earlier frozen-config review recorded 20/20 eligible mouse-session shortcuts on L5 at mean effort 0.7375 and gap 87088.490. Recheck against the current owner constraints fails, including hold-target conflicts and owner-shortcut placement; this is a behavior correction to the existing layout, not a newly accepted candidate.
 
 The layout bundle records `verified_in_zmk_studio: false`; export checks do not verify the keyboard's programmed state. Use Microsoft Edge to connect the keyboard, apply `keyboard-data\layout\apply_every_key.js`, save in Studio, then run `verify_every_key.js`.
+
+Layer access keys placed on their own layer use `coach_lN_lock`, which sets that layer on instead of toggling off a layer held momentarily. The firmware must include these lock-on macros; this portable repo supplies layout and Coach files, not firmware.
 
 ## Keyboard connection
 
