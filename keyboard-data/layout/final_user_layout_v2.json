@@ -8024,12 +8024,12 @@
   "source_apply_script": "keyboard-data/layout/apply_every_key.js",
   "source_verify_script": "keyboard-data/layout/verify_every_key.js",
   "source_csv": "keyboard-data/layout/keybindings_explained.csv",
-  "verified_in_zmk_studio": false,
+  "verified_in_zmk_studio": true,
   "verify_result": {
-    "pass": null,
-    "fail": null,
-    "percent": null,
-    "note": "Gen25000 ZMK Studio verification pending."
+    "pass": 444,
+    "fail": 0,
+    "percent": 100.0,
+    "note": "Verified in Microsoft Edge ZMK Studio against the gen25000 export: 444 checked bindings passed, 0 failed. Layer 7 was skipped by the apply/verify scripts. Save Changes command issued."
   },
   "score_summary": {
     "run": "continued_30k_from25000_20261027T064035Z",

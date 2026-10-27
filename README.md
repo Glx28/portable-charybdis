@@ -31,9 +31,11 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-The portable bundle now uses the latest saved checkpoint, gen25000 from `continued_30k_from25000_20261027T064035Z`. Dynamic mouse layer is L5. Ctrl+C and Ctrl+V are both on L5 at x4,y3 and x4,y2; PowerToys Run and Windows Search are on L5. Norwegian exporter audit reports zero bad literals. The candidate still has two momentary-hold target conflicts, so the audit is not a full acceptance pass.
+Portable bundle uses gen25000, the latest saved checkpoint from `continued_30k_from25000_20261027T064035Z`. Dynamic mouse layer is L5. Ctrl+C and Ctrl+V are both on L5 at x4,y3 and x4,y2; PowerToys Run and Windows Search are on L5. Norwegian exporter audit reports zero bad literals. The candidate still has two momentary-hold target conflicts, so it is not a full acceptance pass.
 
-The layout is being applied and verified on the physical keyboard through Microsoft Edge and ZMK Studio. `verified_in_zmk_studio` remains false until that verification completes. Layer access keys placed on their own layer use `coach_lN_lock` behaviors. This portable repository supplies layout and Coach files, not firmware.
+The physical keyboard was updated through Microsoft Edge and ZMK Studio. Studio verification passed 444/444 checked bindings (100%), including all 7 scroll-hold keys. Layer 7 was skipped as frozen by the apply/verify scripts.
+
+Layer access keys placed on their own layer use `coach_lN_lock` behaviors. This portable repository supplies layout and Coach files, not firmware.
 
 ## Keyboard connection
 
