@@ -31,11 +31,9 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the gen6500 owner-feedback checkpoint re-evaluated at gen12000. Its 616 key positions are unchanged by the self-layer lock fix; same-layer toggles on L1–L10 now use lock-on behaviors, including the requested L7 self-toggle at `(8,4)`. The earlier frozen-config review recorded 20/20 eligible mouse-session shortcuts on L5 at mean effort 0.7375 and gap 87088.490. Recheck against the current owner constraints fails, including hold-target conflicts and owner-shortcut placement; this is a behavior correction to the existing layout, not a newly accepted candidate.
+The portable bundle now uses the latest saved checkpoint, gen25000 from `continued_30k_from25000_20261027T064035Z`. Dynamic mouse layer is L5. Ctrl+C and Ctrl+V are both on L5 at x4,y3 and x4,y2; PowerToys Run and Windows Search are on L5. Norwegian exporter audit reports zero bad literals. The candidate still has two momentary-hold target conflicts, so the audit is not a full acceptance pass.
 
-The layout bundle records `verified_in_zmk_studio: false`; export checks do not verify the keyboard's programmed state. Use Microsoft Edge to connect the keyboard, apply `keyboard-data\layout\apply_every_key.js`, save in Studio, then run `verify_every_key.js`.
-
-Layer access keys placed on their own layer use `coach_lN_lock`, which sets that layer on instead of toggling off a layer held momentarily. The firmware must include these lock-on macros; this portable repo supplies layout and Coach files, not firmware.
+The layout is being applied and verified on the physical keyboard through Microsoft Edge and ZMK Studio. `verified_in_zmk_studio` remains false until that verification completes. Layer access keys placed on their own layer use `coach_lN_lock` behaviors. This portable repository supplies layout and Coach files, not firmware.
 
 ## Keyboard connection
 
