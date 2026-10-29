@@ -869,17 +869,29 @@ RegisterAllHooks() {
             }
         }
     }
-    ; Norwegian physical symbol cluster, including ISO's extra SC056 key.
-    ; Capture bare/shifted outputs plus AltGr outputs such as @ from AltGr+2.
-    for key in ["[", "]", "``", "-", "=", "\", ";", "'", "SC056"] {
+    ; Norwegian physical symbol cluster, including æ/ø/å and ISO's extra key.
+    ; Scan codes track emitted physical positions across keyboard layouts.
+    ; AltGr outputs such as @ continue through the modifier hooks above.
+    for key in ["SC00C", "SC01A", "SC01B", "SC027", "SC028", "SC029", "SC02B", "SC033", "SC034", "SC035", "SC056"] {
         try {
-            Hotkey "~" key, LogRawCompletionCallback
+            Hotkey "~" key, LogNorwegianPhysicalCallback
             registered++
         } catch as e {
             errors .= "~" key ": " e.Message "`n"
         }
         try {
-            Hotkey "~+" key, LogShiftFunctionalCallback
+            Hotkey "~+" key, LogNorwegianPhysicalCallback
+            registered++
+        } catch as e {
+            errors .= "~+" key ": " e.Message "`n"
+        }
+    }
+    ; Shifted number-row outputs are symbols in nb-NO (for example ", %, /).
+    numberRow := "0123456789"
+    Loop Parse, numberRow {
+        key := A_LoopField
+        try {
+            Hotkey "~+" key, LogNorwegianPhysicalCallback
             registered++
         } catch as e {
             errors .= "~+" key ": " e.Message "`n"
@@ -1130,6 +1142,19 @@ LogRawCompletionCallback(hotkeyName) {
     }
 }
 
+LogNorwegianPhysicalCallback(hotkeyName) {
+    global ModifierComboFired
+    try {
+        ModifierComboFired := true
+        keys := ParseHotkeyName(hotkeyName)
+        layer := "0"
+        try layer := CoachActiveLayer()
+        LogNorwegianSymbolUsage(hotkeyName, keys, layer)
+    } catch as e {
+        try FileAppend("LogNorwegianPhysicalCallback error: " hotkeyName " - " e.Message "`n", RuntimeDir "\hook_debug.log", "UTF-8")
+    }
+}
+
 LogNorwegianSymbolUsage(hotkeyName, keys, layer) {
     parts := StrSplit(keys, "+")
     physicalKey := parts[parts.Length]
@@ -1138,7 +1163,11 @@ LogNorwegianSymbolUsage(hotkeyName, keys, layer) {
     shifted := InStr(lowerHotkey, "+") > 0
     clusterKey := physicalKey = "[" || physicalKey = "]" || physicalKey = "``"
         || physicalKey = "-" || physicalKey = "=" || physicalKey = "\"
-        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC056"
+        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC00C"
+        || physicalKey = "SC01A" || physicalKey = "SC01B" || physicalKey = "SC027"
+        || physicalKey = "SC028" || physicalKey = "SC029" || physicalKey = "SC02B"
+        || physicalKey = "SC033" || physicalKey = "SC034" || physicalKey = "SC035"
+        || physicalKey = "SC056" || (shifted && RegExMatch(physicalKey, "^\d$"))
     if !altGr && !clusterKey
         return
 
