@@ -73,6 +73,7 @@
     hostKeyboard: null,
     appShortcutReference: null,
     shortcutAppIcons: null,
+    functionIconManifest: null,
     displayedLayer: "0",
     liveLayer: "0",
     pinnedLayer: null,
@@ -1098,6 +1099,16 @@
     return asset ? { ...asset, app: selected ? state.shortcutAppIcons?.overrideLabels?.[shortcut] || app : app } : null;
   }
 
+  function functionIconForRow(row) {
+    const purpose = `${clean(row.purpose)} ${clean(row.visual_label)} ${clean(row.parameter)} ${clean(row.usage_notes)}`;
+    const app = rowApp(row);
+    for (const rule of state.functionIconManifest?.purpose_rules || []) {
+      if (rule.app_pattern && !new RegExp(rule.app_pattern, "i").test(app)) continue;
+      if (new RegExp(rule.pattern, "i").test(purpose)) return rule;
+    }
+    return null;
+  }
+
   function rowCategory(row) {
     return clean(row.category || "");
   }
@@ -1496,6 +1507,7 @@
         }
         const visual = visualFor(row);
         const appIcon = appIconForRow(row);
+        const functionIcon = functionIconForRow(row);
         const button = document.createElement("button");
         button.type = "button";
         button.className = `keycap kind-${visual.kind}`;
@@ -1506,8 +1518,12 @@
         button.dataset.keyId = keyId(row);
         button.title = `${clean(row.visual_label)} — ${clean(row.behavior)} — ${outputDisplayForRow(row)}`;
         if (appIcon) button.title += ` — ${appIcon.app}`;
-        const badgeHtml = visual.badge
+        if (functionIcon) button.title += ` — ${functionIcon.name} icon`;
+        const badgeHtml = !functionIcon && visual.badge
           ? `<span class="key-badge" aria-hidden="true">${escapeHtml(visual.badge)}</span>`
+          : "";
+        const functionIconHtml = functionIcon
+          ? `<img class="key-function-icon" src="${escapeHtml(functionIcon.src)}" alt="${escapeHtml(functionIcon.name)}" title="${escapeHtml(functionIcon.name)}" loading="lazy" decoding="async">`
           : "";
         const secondaryHtml = visual.secondary
           ? `<div class="key-secondary">${escapeHtml(visual.secondary)}</div>`
@@ -1517,6 +1533,7 @@
           : "";
         button.innerHTML = [
           appIconHtml,
+          functionIconHtml,
           badgeHtml,
           `<div class="key-primary">${escapeHtml(visual.primary)}</div>`,
           secondaryHtml
@@ -2868,14 +2885,15 @@
   }
 
   async function init() {
-    const [csvText, layoutSpec, appsConfig, hostKeyboard, appShortcutReference, fundamentalsConfig, shortcutAppIcons] = await Promise.all([
+    const [csvText, layoutSpec, appsConfig, hostKeyboard, appShortcutReference, fundamentalsConfig, shortcutAppIcons, functionIconManifest] = await Promise.all([
       loadText("./data/keybindings_explained.csv"),
       loadJson("./data/layout_spec.json", {}),
       loadJson("./data/charybdis_apps.json", { apps: [] }),
       loadJson("./data/windows_norwegian_host.json", null),
       loadJson("./data/app_shortcut_reference.json", { apps: {} }),
       loadJson("./data/fundamentals.json", { fundamentals: [] }),
-      loadJson("./data/shortcut_app_icons.json", { apps: {}, assets: {} })
+      loadJson("./data/shortcut_app_icons.json", { apps: {}, assets: {} }),
+      loadJson("./data/function_icon_manifest.json", { purpose_rules: [] })
     ]);
     state.rows = normalizeRows(parseCsv(csvText));
     state.layoutSpec = layoutSpec || {};
@@ -2883,6 +2901,7 @@
     state.apps = appsConfig.apps || [];
     state.appShortcutReference = appShortcutReference || { apps: {} };
     state.shortcutAppIcons = shortcutAppIcons || { apps: {}, assets: {} };
+    state.functionIconManifest = functionIconManifest || { purpose_rules: [] };
     state.fundamentals = fundamentalsConfig?.fundamentals || [];
     const device = clean(state.layoutSpec.device) || "Charybdis";
     const host = clean(state.layoutSpec.host_keyboard?.primary) || clean(hostKeyboard?.name) || "";
