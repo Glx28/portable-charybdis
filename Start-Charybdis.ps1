@@ -6,7 +6,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$Root = (Resolve-Path -LiteralPath $PSScriptRoot).Path
+$Root = (Resolve-Path -LiteralPath $PSScriptRoot).ProviderPath
 $Runtime = Join-Path $Root "runtime"
 $Deps = Join-Path $Runtime "dependencies"
 $Coach = Join-Path $Root "coach"
@@ -133,23 +133,27 @@ function Stop-TrackedProcess([string]$RecordPath, [string]$CommandToken) {
 function Get-PortableProcessRoot($Process) {
     if (-not $Process.CommandLine) { return $null }
     $scriptPath = $null
-    if ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\ahk\\charybdis_helpers\.ahk)(?:"|\s|$)') {
+    if ($Process.CommandLine -match '(?i)"(?<script>(?:[A-Z]:\\|\\\\)[^"]*\\ahk\\charybdis_helpers\.ahk)"|(?<script>(?:[A-Z]:\\|\\\\)[^\s"]*\\ahk\\charybdis_helpers\.ahk)(?:\s|$)') {
         $scriptPath = $Matches.script
-    } elseif ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\python\\coach_http_server\.py)(?:"|\s|$)') {
+    } elseif ($Process.CommandLine -match '(?i)"(?<script>(?:[A-Z]:\\|\\\\)[^"]*\\python\\coach_http_server\.py)"|(?<script>(?:[A-Z]:\\|\\\\)[^\s"]*\\python\\coach_http_server\.py)(?:\s|$)') {
         $scriptPath = $Matches.script
-    } elseif ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\Start-Charybdis\.ps1)(?:"|\s|$)') {
+    } elseif ($Process.CommandLine -match '(?i)"(?<script>(?:[A-Z]:\\|\\\\)[^"]*\\Start-Charybdis\.ps1)"|(?<script>(?:[A-Z]:\\|\\\\)[^\s"]*\\Start-Charybdis\.ps1)(?:\s|$)') {
         $scriptPath = $Matches.script
     }
     if (-not $scriptPath) { return $null }
-    if ($scriptPath -match '(?i)\\(?:ahk\\charybdis_helpers\.ahk|python\\coach_http_server\.py)$') {
-        $candidate = Split-Path -Parent (Split-Path -Parent $scriptPath)
-    } else {
-        $candidate = Split-Path -Parent $scriptPath
-    }
-    if ((Test-Path -LiteralPath (Join-Path $candidate 'Start-Charybdis.ps1')) -and
-        (Test-Path -LiteralPath (Join-Path $candidate 'keyboard-data')) -and
-        (Test-Path -LiteralPath (Join-Path $candidate 'coach\index.html'))) {
-        return [IO.Path]::GetFullPath($candidate).TrimEnd('\')
+    try {
+        if ($scriptPath -match '(?i)\\(?:ahk\\charybdis_helpers\.ahk|python\\coach_http_server\.py)$') {
+            $candidate = Split-Path -Parent (Split-Path -Parent $scriptPath)
+        } else {
+            $candidate = Split-Path -Parent $scriptPath
+        }
+        if ((Test-Path -LiteralPath (Join-Path $candidate 'Start-Charybdis.ps1')) -and
+            (Test-Path -LiteralPath (Join-Path $candidate 'keyboard-data')) -and
+            (Test-Path -LiteralPath (Join-Path $candidate 'coach\index.html'))) {
+            return [IO.Path]::GetFullPath($candidate).TrimEnd('\')
+        }
+    } catch {
+        return $null
     }
     return $null
 }
@@ -214,11 +218,11 @@ function Start-PortableStack {
     if (-not (Test-Path -LiteralPath $Helper) -or -not (Test-Path -LiteralPath (Join-Path $Coach "index.html")) -or -not (Test-Path -LiteralPath $Server)) {
         throw "Portable Charybdis files are incomplete. Pull the repository again."
     }
-    Stop-OldPortableProcesses
-    Repair-PortableStartupLinks
     New-Item -ItemType Directory -Path $Runtime, $LogDir -Force | Out-Null
     $python = Get-PortablePython
     $ahk = Get-PortableAhk
+    Stop-OldPortableProcesses
+    Repair-PortableStartupLinks
     $configPath = Join-Path $Root "keyboard-data\config\charybdis_helper.json"
     $config = Get-Json $configPath
     $preferredPort = 8765
