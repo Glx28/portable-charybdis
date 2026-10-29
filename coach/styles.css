@@ -618,6 +618,21 @@ svg {
   border-radius: 8px;
 }
 
+.key-app-icon {
+  position: absolute;
+  z-index: 1;
+  top: 3px;
+  right: 3px;
+  width: 17px;
+  height: 17px;
+  padding: 2px;
+  object-fit: contain;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 5px;
+  background: rgba(8, 13, 19, 0.82);
+  pointer-events: none;
+}
+
 .keycap:hover,
 .keycap.selected {
   border-color: var(--accent);

@@ -279,7 +279,7 @@ function Start-PortableStack {
                 $hookFile = Get-Item -LiteralPath $HookDebugLog
                 if ($hookFile.LastWriteTimeUtc -ge $helperStartUtc.AddSeconds(-1)) {
                     $hookText = Get-Content -Raw -LiteralPath $HookDebugLog
-                    $hookMatches = [regex]::Matches($hookText, '(?m)^LoggerVersion=layer-symbol-v1\r?\nRegistered (?<count>\d+) hooks')
+                    $hookMatches = [regex]::Matches($hookText, '(?m)^LoggerVersion=layer-binding-v2\r?\nRegistered (?<count>\d+) hooks')
                     if ($hookMatches.Count -gt 0) {
                         $hookCount = [int]$hookMatches[$hookMatches.Count - 1].Groups['count'].Value
                         $loggerReady = $hookCount -ge 500
@@ -291,7 +291,7 @@ function Start-PortableStack {
             throw "The keyboard logger/beacon helper did not stay running. Check AutoHotkey and Windows security settings."
         }
         if (-not $loggerReady) {
-            throw "The keyboard logger did not confirm layer-symbol-v1 hook registration. Check runtime\hook_debug.log."
+            throw "The keyboard logger did not confirm layer-binding-v2 hook registration. Check runtime\hook_debug.log."
         }
         Save-Json $AhkPidFile @{ pid = [int]$helperProcess.ProcessId; command = "charybdis_helpers.ahk"; root = $Root }
         Write-Ok "Keyboard logger and beacon helper running ($hookCount hooks registered)."

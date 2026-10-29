@@ -1,0 +1,46 @@
+{
+  "assets": {
+    "chrome": { "file": "chrome.png" },
+    "edge": { "file": "edge.png" },
+    "vscode": { "file": "vscode.png" },
+    "excel": { "file": "excel.png" },
+    "outlook": { "file": "outlook.png" },
+    "word": { "file": "word.png" },
+    "powerpoint": { "file": "powerpoint.png" },
+    "discord": { "file": "discord.png" },
+    "explorer": { "file": "explorer.png" },
+    "powertoys_run": { "file": "powertoys_run.png" },
+    "cmdpal": { "file": "cmdpal.png" },
+    "terminal": { "file": "terminal.png" },
+    "teams": { "file": "teams.png" },
+    "windows": { "file": "windows.svg" },
+    "claude": { "file": "claude.svg" },
+    "mfiles": { "file": "mfiles.svg" }
+  },
+  "apps": {
+    "Browser (Chrome/Edge)": "edge",
+    "Windows 11": "windows",
+    "Visual Studio Code": "vscode",
+    "Claude Code CLI": "claude",
+    "PowerToys": "powertoys_run",
+    "Windows Terminal / PowerShell": "terminal",
+    "Microsoft Teams": "teams",
+    "M-Files Desktop Client": "mfiles",
+    "Microsoft Outlook": "outlook",
+    "Microsoft Excel": "excel",
+    "File Explorer": "explorer",
+    "Microsoft Word": "word",
+    "Microsoft PowerPoint": "powerpoint",
+    "Discord": "discord"
+  },
+  "shortcutOverrides": {
+    "Ctrl+C": "terminal",
+    "Ctrl+V": "terminal",
+    "Win+Alt+Space": "cmdpal"
+  },
+  "overrideLabels": {
+    "Ctrl+C": "Windows Terminal",
+    "Ctrl+V": "Windows Terminal",
+    "Win+Alt+Space": "PowerToys Command Palette"
+  }
+}

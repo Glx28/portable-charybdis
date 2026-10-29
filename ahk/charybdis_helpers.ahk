@@ -532,6 +532,21 @@ LogShortcutUsage(shortcutKeys, name := "") {
 
 BufferEvent(eventMap) {
     global EventBuffer
+    if !eventMap.Has("layer") {
+        eventType := eventMap.Has("type") ? eventMap["type"] : ""
+        if eventType = "layer_transition" && eventMap.Has("to") {
+            eventMap["layer"] := String(eventMap["to"])
+        } else if eventType = "layer_bounce" && eventMap.Has("layers") && eventMap["layers"].Length {
+            layerPath := eventMap["layers"]
+            eventMap["layer"] := String(layerPath[layerPath.Length])
+        } else if eventMap.Has("to_layer") {
+            eventMap["layer"] := String(eventMap["to_layer"])
+        } else {
+            activeLayer := "0"
+            try activeLayer := CoachActiveLayer()
+            eventMap["layer"] := String(activeLayer)
+        }
+    }
     eventMap["ts"] := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ss") "Z"
     EventBuffer.Push(eventMap)
 }
@@ -975,7 +990,7 @@ RegisterAllHooks() {
         }
     }
     ; Log registration results
-    try FileAppend("LoggerVersion=layer-symbol-v1`nRegistered " registered " hooks`n" (errors ? "Errors:`n" errors : "No errors") "`n", RuntimeDir "\hook_debug.log", "UTF-8")
+    try FileAppend("LoggerVersion=layer-binding-v2`nRegistered " registered " hooks`n" (errors ? "Errors:`n" errors : "No errors") "`n", RuntimeDir "\hook_debug.log", "UTF-8")
 }
 
 ParseHotkeyName(hk) {

@@ -72,6 +72,7 @@
     layoutSpec: {},
     hostKeyboard: null,
     appShortcutReference: null,
+    shortcutAppIcons: null,
     displayedLayer: "0",
     liveLayer: "0",
     pinnedLayer: null,
@@ -1087,6 +1088,16 @@
     return clean(row.app || "");
   }
 
+  function appIconForRow(row) {
+    const app = rowApp(row);
+    const shortcut = clean(row.visual_label).replace(/\s+/g, "");
+    const selected = state.shortcutAppIcons?.shortcutOverrides?.[shortcut];
+    const iconId = selected || state.shortcutAppIcons?.apps?.[app];
+    if (!iconId) return null;
+    const asset = state.shortcutAppIcons?.assets?.[iconId];
+    return asset ? { ...asset, app: selected ? state.shortcutAppIcons?.overrideLabels?.[shortcut] || app : app } : null;
+  }
+
   function rowCategory(row) {
     return clean(row.category || "");
   }
@@ -1484,6 +1495,7 @@
           continue;
         }
         const visual = visualFor(row);
+        const appIcon = appIconForRow(row);
         const button = document.createElement("button");
         button.type = "button";
         button.className = `keycap kind-${visual.kind}`;
@@ -1493,13 +1505,18 @@
         button.dataset.important = String(isImportant(row));
         button.dataset.keyId = keyId(row);
         button.title = `${clean(row.visual_label)} — ${clean(row.behavior)} — ${outputDisplayForRow(row)}`;
+        if (appIcon) button.title += ` — ${appIcon.app}`;
         const badgeHtml = visual.badge
           ? `<span class="key-badge" aria-hidden="true">${escapeHtml(visual.badge)}</span>`
           : "";
         const secondaryHtml = visual.secondary
           ? `<div class="key-secondary">${escapeHtml(visual.secondary)}</div>`
           : "";
+        const appIconHtml = appIcon
+          ? `<img class="key-app-icon" src="./assets/apps/${escapeHtml(appIcon.file)}" alt="" title="${escapeHtml(appIcon.app)}" aria-hidden="true">`
+          : "";
         button.innerHTML = [
+          appIconHtml,
           badgeHtml,
           `<div class="key-primary">${escapeHtml(visual.primary)}</div>`,
           secondaryHtml
@@ -2851,19 +2868,21 @@
   }
 
   async function init() {
-    const [csvText, layoutSpec, appsConfig, hostKeyboard, appShortcutReference, fundamentalsConfig] = await Promise.all([
+    const [csvText, layoutSpec, appsConfig, hostKeyboard, appShortcutReference, fundamentalsConfig, shortcutAppIcons] = await Promise.all([
       loadText("./data/keybindings_explained.csv"),
       loadJson("./data/layout_spec.json", {}),
       loadJson("./data/charybdis_apps.json", { apps: [] }),
       loadJson("./data/windows_norwegian_host.json", null),
       loadJson("./data/app_shortcut_reference.json", { apps: {} }),
-      loadJson("./data/fundamentals.json", { fundamentals: [] })
+      loadJson("./data/fundamentals.json", { fundamentals: [] }),
+      loadJson("./data/shortcut_app_icons.json", { apps: {}, assets: {} })
     ]);
     state.rows = normalizeRows(parseCsv(csvText));
     state.layoutSpec = layoutSpec || {};
     state.hostKeyboard = hostKeyboard;
     state.apps = appsConfig.apps || [];
     state.appShortcutReference = appShortcutReference || { apps: {} };
+    state.shortcutAppIcons = shortcutAppIcons || { apps: {}, assets: {} };
     state.fundamentals = fundamentalsConfig?.fundamentals || [];
     const device = clean(state.layoutSpec.device) || "Charybdis";
     const host = clean(state.layoutSpec.host_keyboard?.primary) || clean(hostKeyboard?.name) || "";
