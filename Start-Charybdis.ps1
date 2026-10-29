@@ -15,6 +15,7 @@ $Server = Join-Path $Root "python\coach_http_server.py"
 $State = Join-Path $Runtime "charybdis_state.json"
 $PortFile = Join-Path $Runtime "coach_server_port.txt"
 $AhkPidFile = Join-Path $Runtime "logger_beacon.pid.json"
+$HookDebugLog = Join-Path $Runtime "hook_debug.log"
 $ServerPidFile = Join-Path $Runtime "coach_server.pid.json"
 $LogDir = Join-Path $Runtime "logs"
 $mutex = [Threading.Mutex]::new($false, "Local\PortableCharybdis")
@@ -264,15 +265,36 @@ function Start-PortableStack {
     $helperProcess = Get-TrackedProcess $AhkPidFile "charybdis_helpers.ahk"
     if (-not $helperProcess) {
         Remove-Item -LiteralPath $AhkPidFile -Force -ErrorAction SilentlyContinue
+        $helperStartUtc = [DateTime]::UtcNow
         $startedAhk = Start-Process -FilePath $ahk -ArgumentList @(('"' + $Helper + '"')) `
             -WorkingDirectory $Root -PassThru
-        Start-Sleep -Milliseconds 800
-        $helperProcess = Get-CimInstance Win32_Process -Filter "ProcessId=$($startedAhk.Id)" -ErrorAction SilentlyContinue
+        $hookCount = 0
+        $loggerReady = $false
+        $loggerDeadline = [DateTime]::UtcNow.AddSeconds(10)
+        do {
+            Start-Sleep -Milliseconds 200
+            $helperProcess = Get-CimInstance Win32_Process -Filter "ProcessId=$($startedAhk.Id)" -ErrorAction SilentlyContinue
+            if (-not $helperProcess) { break }
+            if (Test-Path -LiteralPath $HookDebugLog) {
+                $hookFile = Get-Item -LiteralPath $HookDebugLog
+                if ($hookFile.LastWriteTimeUtc -ge $helperStartUtc.AddSeconds(-1)) {
+                    $hookText = Get-Content -Raw -LiteralPath $HookDebugLog
+                    $hookMatches = [regex]::Matches($hookText, '(?m)^LoggerVersion=layer-symbol-v1\r?\nRegistered (?<count>\d+) hooks')
+                    if ($hookMatches.Count -gt 0) {
+                        $hookCount = [int]$hookMatches[$hookMatches.Count - 1].Groups['count'].Value
+                        $loggerReady = $hookCount -ge 500
+                    }
+                }
+            }
+        } while (-not $loggerReady -and [DateTime]::UtcNow -lt $loggerDeadline)
         if (-not $helperProcess -or -not $helperProcess.CommandLine.Contains($Helper)) {
             throw "The keyboard logger/beacon helper did not stay running. Check AutoHotkey and Windows security settings."
         }
+        if (-not $loggerReady) {
+            throw "The keyboard logger did not confirm layer-symbol-v1 hook registration. Check runtime\hook_debug.log."
+        }
         Save-Json $AhkPidFile @{ pid = [int]$helperProcess.ProcessId; command = "charybdis_helpers.ahk"; root = $Root }
-        Write-Ok "Keyboard logger and beacon helper running."
+        Write-Ok "Keyboard logger and beacon helper running ($hookCount hooks registered)."
     } else {
         Write-Info "Keyboard logger and beacon helper already running."
     }

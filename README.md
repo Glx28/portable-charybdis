@@ -37,6 +37,8 @@ The current bundle is the gen5000 review candidate with the requested L0 `(7,4)`
 
 Starting after `git pull` replaces helper/server processes from older Portable Charybdis folders and repoints recognized Portable Charybdis sign-in shortcuts to this checkout. Other applications and unrelated AHK/Python processes are left alone.
 
+`Start-Charybdis.cmd` starts both Coach and the keyboard logger. Startup waits for the current logger version to register its hooks and fails with a `hook_debug.log` path if logging did not initialize. Usage events are written to `runtime\shortcut_usage.jsonl` with the active layer. Norwegian symbol events include the physical key, translated output, modifier state (including AltGr), and active layer.
+
 ## Keyboard connection
 
 Coach layer tracking works automatically over USB. Firmware sends layer changes on a separate vendor-defined HID interface; the Windows helper reads that private interface, so layer keys never become host keypresses. USB switching between computers requires no Bluetooth pairing. Bluetooth-only use remains available through **Connect over Bluetooth** in Edge or Chrome; it is optional when connected by USB. Both channels require firmware with the Coach beacon feature.

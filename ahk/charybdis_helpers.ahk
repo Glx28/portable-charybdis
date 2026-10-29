@@ -834,7 +834,7 @@ RegisterAllHooks() {
     }
     numbers := "0123456789"
     Loop Parse, numbers {
-        for prefix in ["~^", "~^+", "~!", "~#"] {
+        for prefix in ["~^", "~^+", "~!", "~#", "~^!", "~^!+"] {
             try {
                 Hotkey prefix A_LoopField, LogHotkeyCallback
                 registered++
@@ -843,9 +843,9 @@ RegisterAllHooks() {
             }
         }
     }
-    ; Modifier + punctuation/special keys
-    for key in ["/", "\", "[", "]", "``", "-", "=", ",", ".", ";", "'"] {
-        for prefix in ["~^", "~^+", "~!"] {
+    ; Modifier + punctuation/special keys. Windows reports AltGr as Ctrl+Alt.
+    for key in ["/", "\", "[", "]", "``", "-", "=", ",", ".", ";", "'", "SC056"] {
+        for prefix in ["~^", "~^+", "~!", "~^!", "~^!+"] {
             try {
                 Hotkey prefix key, LogHotkeyCallback
                 registered++
@@ -854,15 +854,20 @@ RegisterAllHooks() {
             }
         }
     }
-    ; Bare Norwegian raw completion keys missing from L0. These are logged as
-    ; backup physical-key demand so the optimizer can place the cluster by real
-    ; usage priority instead of treating it as a fixed layer role.
-    for key in ["]", "``", "-", "="] {
+    ; Norwegian physical symbol cluster, including ISO's extra SC056 key.
+    ; Capture bare/shifted outputs plus AltGr outputs such as @ from AltGr+2.
+    for key in ["[", "]", "``", "-", "=", "\", ";", "'", "SC056"] {
         try {
             Hotkey "~" key, LogRawCompletionCallback
             registered++
         } catch as e {
             errors .= "~" key ": " e.Message "`n"
+        }
+        try {
+            Hotkey "~+" key, LogShiftFunctionalCallback
+            registered++
+        } catch as e {
+            errors .= "~+" key ": " e.Message "`n"
         }
     }
     ; Modifier + navigation/editing keys
@@ -970,7 +975,7 @@ RegisterAllHooks() {
         }
     }
     ; Log registration results
-    try FileAppend("Registered " registered " hooks`n" (errors ? "Errors:`n" errors : "No errors") "`n", RuntimeDir "\hook_debug.log", "UTF-8")
+    try FileAppend("LoggerVersion=layer-symbol-v1`nRegistered " registered " hooks`n" (errors ? "Errors:`n" errors : "No errors") "`n", RuntimeDir "\hook_debug.log", "UTF-8")
 }
 
 ParseHotkeyName(hk) {
@@ -1012,6 +1017,7 @@ LogHotkeyCallback(hotkeyName) {
         try layer := CoachActiveLayer()
         evtType := layer != "0" ? "layer_key" : "shortcut"
         LogEventWithRepeatAndSequence(evtType, keys, layer)
+        LogNorwegianSymbolUsage(hotkeyName, keys, layer)
     } catch as e {
         try FileAppend("LogHotkeyCallback error: " hotkeyName " - " e.Message "`n", RuntimeDir "\hook_debug.log", "UTF-8")
     }
@@ -1091,6 +1097,7 @@ LogShiftFunctionalCallback(hotkeyName) {
     try layer := CoachActiveLayer()
     evtType := layer != "0" ? "layer_key" : "shortcut"
     LogEventWithRepeatAndSequence(evtType, keys, layer)
+    LogNorwegianSymbolUsage(hotkeyName, keys, layer)
 }
 
 LogRawCompletionCallback(hotkeyName) {
@@ -1102,9 +1109,77 @@ LogRawCompletionCallback(hotkeyName) {
         try layer := CoachActiveLayer()
         evtType := layer != "0" ? "layer_key" : "functional"
         LogEventWithRepeatAndSequence(evtType, keys, layer)
+        LogNorwegianSymbolUsage(hotkeyName, keys, layer)
     } catch as e {
         try FileAppend("LogRawCompletionCallback error: " hotkeyName " - " e.Message "`n", RuntimeDir "\hook_debug.log", "UTF-8")
     }
+}
+
+LogNorwegianSymbolUsage(hotkeyName, keys, layer) {
+    parts := StrSplit(keys, "+")
+    physicalKey := parts[parts.Length]
+    lowerHotkey := StrLower(hotkeyName)
+    altGr := InStr(lowerHotkey, "^!") || InStr(lowerHotkey, ">!")
+    shifted := InStr(lowerHotkey, "+") > 0
+    clusterKey := physicalKey = "[" || physicalKey = "]" || physicalKey = "``"
+        || physicalKey = "-" || physicalKey = "=" || physicalKey = "\"
+        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC056"
+    if !altGr && !clusterKey
+        return
+
+    translation := TranslatePhysicalKeyOutput(physicalKey)
+    if !translation
+        return
+    output := translation["output"]
+    if output = ""
+        return
+    app := ""
+    try app := WinGetProcessName("A")
+    state := altGr ? (shifted ? "altgr_shift" : "altgr") : (shifted ? "shift" : "normal")
+    evt := Map(
+        "type", "norwegian_symbol_key",
+        "physical_key", physicalKey,
+        "produced_output", output,
+        "modifier_state", state,
+        "keys", keys,
+        "app", app,
+        "layer", String(layer),
+        "dead_key", translation["dead_key"]
+    )
+    BufferEvent(evt)
+}
+
+TranslatePhysicalKeyOutput(keyName) {
+    vk := GetKeyVK(keyName)
+    sc := GetKeySC(keyName)
+    if !vk
+        return ""
+    keyboardState := Buffer(256, 0)
+    if !DllCall("GetKeyboardState", "Ptr", keyboardState, "Int")
+        return ""
+    if GetKeyState("Shift", "P")
+        NumPut("UChar", 0x80, keyboardState, 0x10)
+    if GetKeyState("Ctrl", "P")
+        NumPut("UChar", 0x80, keyboardState, 0x11)
+    if GetKeyState("Alt", "P")
+        NumPut("UChar", 0x80, keyboardState, 0x12)
+    if GetKeyState("RAlt", "P")
+        NumPut("UChar", 0x80, keyboardState, 0xA5)
+
+    hwnd := WinExist("A")
+    threadId := hwnd ? DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "Ptr", 0, "UInt") : 0
+    keyboardLayout := DllCall("GetKeyboardLayout", "UInt", threadId, "Ptr")
+    outputBuffer := Buffer(16, 0)
+    translated := DllCall(
+        "ToUnicodeEx", "UInt", vk, "UInt", sc, "Ptr", keyboardState,
+        "Ptr", outputBuffer, "Int", 8, "UInt", 4, "Ptr", keyboardLayout, "Int"
+    )
+    if translated = 0
+        return 0
+    return Map(
+        "output", StrGet(outputBuffer, Abs(translated), "UTF-16"),
+        "dead_key", translated < 0
+    )
 }
 
 FunctionalKeyUpCallback(hotkeyName) {
