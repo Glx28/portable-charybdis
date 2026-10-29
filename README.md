@@ -4,12 +4,13 @@ One Windows repo for using the Charybdis keyboard. Includes the complete web coa
 
 ## Start
 
-Clone this repo, then double-click `Start-Charybdis.cmd`. First run downloads small, pinned portable AHK and Python runtimes into this repo's ignored `runtime\dependencies\` folder. Download hashes are checked before extraction. Coach and logger start together; the browser opens automatically.
+Clone this repo, then double-click `Start-Charybdis.cmd`. First run downloads small, pinned portable AHK and Python runtimes into this repo's ignored `runtime\dependencies\` folder. Download hashes are checked before extraction. Coach and logger start together. The browser does not open automatically; use `-OpenBrowser` when you want a tab.
 
 ```powershell
 git clone https://github.com/Glx28/portable-charybdis.git
 cd portable-charybdis
 .\Start-Charybdis.cmd
+.\Start-Charybdis.cmd -OpenBrowser
 ```
 
 You need Windows 10/11, internet access for the first launch, and Git to clone/pull. Runtime files and keyboard usage logs stay under `runtime\` and are excluded from Git. Move or copy the whole folder to another computer; its local runtime is portable too. A fresh clone downloads the runtimes on first start.
@@ -17,6 +18,7 @@ You need Windows 10/11, internet access for the first launch, and Git to clone/p
 ## Use
 
 - `Start-Charybdis.cmd` — start logger, beacon handler, and coach
+- `Start-Charybdis.cmd -OpenBrowser` — start the stack and open Coach in the default browser
 - `Start-Charybdis.cmd -Action Status` — show component status and coach URL
 - `Start-Charybdis.cmd -Action Restart` — restart both components
 - `Start-Charybdis.cmd -Action Stop` — stop both components

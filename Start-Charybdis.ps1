@@ -2,7 +2,8 @@
 param(
     [ValidateSet("Start", "Stop", "Restart", "Status", "InstallStartup", "UninstallStartup")]
     [string]$Action = "Start",
-    [switch]$NoBrowser
+    [switch]$NoBrowser,
+    [switch]$OpenBrowser
 )
 
 $ErrorActionPreference = "Stop"
@@ -300,7 +301,7 @@ function Start-PortableStack {
     }
 
     $url = "http://127.0.0.1:$activePort/charybdis-coach/"
-    if (-not $NoBrowser -and (!$config -or $config.coach_open_browser_on_start -ne $false)) {
+    if (-not $NoBrowser -and ($OpenBrowser -or ($config -and $config.coach_open_browser_on_start -eq $true))) {
         Start-Process $url | Out-Null
     }
     Write-Host "Coach: $url" -ForegroundColor Green

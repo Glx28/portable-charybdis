@@ -7,7 +7,7 @@
   "debug_on_start": false,
   "coach_app_enabled": true,
   "coach_server_port": 8765,
-  "coach_open_browser_on_start": true,
+  "coach_open_browser_on_start": false,
   "coach_default_view": "layer",
   "coach_beacons_enabled": true,
   "transport": "usb"
