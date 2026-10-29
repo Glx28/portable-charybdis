@@ -130,6 +130,79 @@ function Stop-TrackedProcess([string]$RecordPath, [string]$CommandToken) {
     Remove-Item -LiteralPath $RecordPath -Force -ErrorAction SilentlyContinue
 }
 
+function Get-PortableProcessRoot($Process) {
+    if (-not $Process.CommandLine) { return $null }
+    $scriptPath = $null
+    if ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\ahk\\charybdis_helpers\.ahk)(?:"|\s|$)') {
+        $scriptPath = $Matches.script
+    } elseif ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\python\\coach_http_server\.py)(?:"|\s|$)') {
+        $scriptPath = $Matches.script
+    } elseif ($Process.CommandLine -match '(?i)(?<script>[A-Z]:\\.*?\\Start-Charybdis\.ps1)(?:"|\s|$)') {
+        $scriptPath = $Matches.script
+    }
+    if (-not $scriptPath) { return $null }
+    if ($scriptPath -match '(?i)\\(?:ahk\\charybdis_helpers\.ahk|python\\coach_http_server\.py)$') {
+        $candidate = Split-Path -Parent (Split-Path -Parent $scriptPath)
+    } else {
+        $candidate = Split-Path -Parent $scriptPath
+    }
+    if ((Test-Path -LiteralPath (Join-Path $candidate 'Start-Charybdis.ps1')) -and
+        (Test-Path -LiteralPath (Join-Path $candidate 'keyboard-data')) -and
+        (Test-Path -LiteralPath (Join-Path $candidate 'coach\index.html'))) {
+        return [IO.Path]::GetFullPath($candidate).TrimEnd('\')
+    }
+    return $null
+}
+
+function Stop-OldPortableProcesses {
+    $stopped = 0
+    foreach ($process in Get-CimInstance Win32_Process -ErrorAction SilentlyContinue) {
+        if ([int]$process.ProcessId -eq $PID) { continue }
+        $portableRoot = Get-PortableProcessRoot $process
+        if (-not $portableRoot) { continue }
+        try {
+            Stop-Process -Id ([int]$process.ProcessId) -Force -ErrorAction Stop
+            Write-Info "Replaced old Portable Charybdis process (PID $($process.ProcessId), root '$portableRoot')."
+            $stopped++
+        } catch { }
+    }
+    if ($stopped -gt 0) { Start-Sleep -Milliseconds 400 }
+    Remove-Item -LiteralPath $AhkPidFile, $ServerPidFile -Force -ErrorAction SilentlyContinue
+}
+
+function Repair-PortableStartupLinks {
+    $shell = New-Object -ComObject WScript.Shell
+    $currentScript = Join-Path $Root 'Start-Charybdis.ps1'
+    $startupDirs = @(
+        [Environment]::GetFolderPath('Startup'),
+        [Environment]::GetFolderPath('CommonStartup')
+    ) | Where-Object { $_ -and (Test-Path -LiteralPath $_) } | Select-Object -Unique
+    foreach ($directory in $startupDirs) {
+        foreach ($linkPath in Get-ChildItem -LiteralPath $directory -Filter '*.lnk' -File -ErrorAction SilentlyContinue) {
+            try {
+                $shortcut = $shell.CreateShortcut($linkPath.FullName)
+                $args = [string]$shortcut.Arguments
+                $scriptMatch = [regex]::Match($args, '(?i)-File\s+"?(?<path>[A-Z]:\\.*?Start-Charybdis\.ps1)(?:"|\s|$)')
+                $oldRoot = $null
+                if ($scriptMatch.Success) { $oldRoot = Split-Path -Parent $scriptMatch.Groups['path'].Value }
+                $hasPortableFiles = $oldRoot -and
+                    (Test-Path -LiteralPath (Join-Path $oldRoot 'keyboard-data')) -and
+                    (Test-Path -LiteralPath (Join-Path $oldRoot 'coach\index.html'))
+                $isPortableLink = $linkPath.Name -eq 'Portable Charybdis.lnk' -or
+                    ($shortcut.TargetPath -match '(?i)powershell\.exe$' -and $hasPortableFiles)
+                if (-not $isPortableLink) { continue }
+                if ($args.IndexOf($currentScript, [StringComparison]::OrdinalIgnoreCase) -ge 0) { continue }
+                $shortcut.TargetPath = Join-Path $env:SystemRoot 'System32\WindowsPowerShell\v1.0\powershell.exe'
+                $shortcut.Arguments = '-NoLogo -NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -File "' + $currentScript + '" -Action Start'
+                $shortcut.WorkingDirectory = $Root
+                $shortcut.Description = 'Start portable Charybdis coach, logger, and beacon helper'
+                $shortcut.Save()
+                Write-Info "Repointed stale Portable Charybdis autostart to '$Root'."
+            } catch { Write-Info "Could not repair autostart link '$($linkPath.FullName)': $($_.Exception.Message)" }
+        }
+    }
+}
+
 function Test-CoachServer([int]$Port) {
     try {
         $result = Invoke-WebRequest -Uri "http://127.0.0.1:$Port/charybdis-coach/" -UseBasicParsing -TimeoutSec 2
@@ -141,6 +214,8 @@ function Start-PortableStack {
     if (-not (Test-Path -LiteralPath $Helper) -or -not (Test-Path -LiteralPath (Join-Path $Coach "index.html")) -or -not (Test-Path -LiteralPath $Server)) {
         throw "Portable Charybdis files are incomplete. Pull the repository again."
     }
+    Stop-OldPortableProcesses
+    Repair-PortableStartupLinks
     New-Item -ItemType Directory -Path $Runtime, $LogDir -Force | Out-Null
     $python = Get-PortablePython
     $ahk = Get-PortableAhk

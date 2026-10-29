@@ -31,11 +31,11 @@ To update, open this folder in PowerShell and run `git pull`, then run `Start-Ch
 
 ## Current keyboard layout
 
-Portable bundle uses gen25000, the latest saved checkpoint from `continued_30k_from25000_20261027T064035Z`. Dynamic mouse layer is L5. Ctrl+C and Ctrl+V are both on L5 at x4,y3 and x4,y2; PowerToys Run and Windows Search are on L5. Norwegian exporter audit reports zero bad literals. The candidate still has two momentary-hold target conflicts, so it is not a full acceptance pass.
+`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the gen6500 owner-feedback checkpoint re-evaluated at gen12000. Its 616 key positions are unchanged by the self-layer lock fix; same-layer toggles on L1–L10 now use lock-on behaviors, including the requested L7 self-toggle at `(8,4)`. The earlier frozen-config review recorded 20/20 eligible mouse-session shortcuts on L5 at mean effort 0.7375 and gap 87088.490. Recheck against the current owner constraints fails, including hold-target conflicts and owner-shortcut placement; this is a behavior correction to the existing layout, not a newly accepted candidate.
 
-The physical keyboard was updated through Microsoft Edge and ZMK Studio. Studio verification passed 444/444 checked bindings (100%), including all 7 scroll-hold keys. Layer 7 was skipped as frozen by the apply/verify scripts.
+The current bundle is the gen5000 review candidate with the requested L0 `(7,4)` change from `Ctrl+6` to a momentary L7 hold. It was applied to the connected keyboard: 560 non-L7 positions completed, then 438 eligible positions verified with 0 failures (L7 remains frozen and excluded). The ZMK Studio Save RPC request was submitted. This repository supplies layout and Coach files, not firmware.
 
-Layer access keys placed on their own layer use `coach_lN_lock` behaviors. This portable repository supplies layout and Coach files, not firmware.
+Starting after `git pull` replaces helper/server processes from older Portable Charybdis folders and repoints recognized Portable Charybdis sign-in shortcuts to this checkout. Other applications and unrelated AHK/Python processes are left alone.
 
 ## Keyboard connection
 
