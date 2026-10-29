@@ -1,22 +1,56 @@
 {
   "assets": {
-    "chrome": { "file": "chrome.png" },
-    "edge": { "file": "edge.png" },
-    "vscode": { "file": "vscode.png" },
-    "excel": { "file": "excel.png" },
-    "outlook": { "file": "outlook.png" },
-    "word": { "file": "word.png" },
-    "powerpoint": { "file": "powerpoint.png" },
-    "discord": { "file": "discord.png" },
-    "explorer": { "file": "explorer.png" },
-    "powertoys_run": { "file": "powertoys_run.png" },
-    "powertoys": { "file": "powertoys.png" },
-    "cmdpal": { "file": "cmdpal.png" },
-    "terminal": { "file": "terminal.png" },
-    "teams": { "file": "teams.png" },
-    "windows": { "file": "windows.svg" },
-    "claude": { "file": "claude.svg" },
-    "mfiles": { "file": "mfiles.svg" }
+    "chrome": {
+      "file": "chrome.png"
+    },
+    "edge": {
+      "file": "edge.png"
+    },
+    "vscode": {
+      "file": "vscode.png"
+    },
+    "excel": {
+      "file": "excel.png"
+    },
+    "outlook": {
+      "file": "outlook.png"
+    },
+    "word": {
+      "file": "word.png"
+    },
+    "powerpoint": {
+      "file": "powerpoint.png"
+    },
+    "discord": {
+      "file": "discord.png"
+    },
+    "explorer": {
+      "file": "explorer.png"
+    },
+    "powertoys_run": {
+      "file": "powertoys_run.png"
+    },
+    "powertoys": {
+      "file": "powertoys.png"
+    },
+    "cmdpal": {
+      "file": "cmdpal.png"
+    },
+    "terminal": {
+      "file": "terminal.png"
+    },
+    "teams": {
+      "file": "teams.png"
+    },
+    "windows": {
+      "file": "windows.svg"
+    },
+    "claude": {
+      "file": "claude.svg"
+    },
+    "mfiles": {
+      "file": "mfiles.svg"
+    }
   },
   "apps": {
     "Browser (Chrome/Edge)": "edge",
@@ -35,13 +69,99 @@
     "Discord": "discord"
   },
   "shortcutOverrides": {
-    "Ctrl+C": "terminal",
-    "Ctrl+V": "terminal",
     "Win+Alt+Space": "cmdpal"
   },
   "overrideLabels": {
-    "Ctrl+C": "Windows Terminal",
-    "Ctrl+V": "Windows Terminal",
     "Win+Alt+Space": "PowerToys Command Palette"
+  },
+  "usageSource": {
+    "file": "shortcut_usage.jsonl",
+    "event_type": "shortcut",
+    "observed_through": "2026-10-29T21:07:50Z",
+    "app_resolution": "Known foreground executable names mapped to Coach app labels; unknown executables ignored.",
+    "layout": "keybindings_explained.csv"
+  },
+  "shortcutAppChoice": {},
+  "shortcutAppChoiceByLayer": {},
+  "browserShortcutChoice": {
+    "ctrl+shift+n": "edge",
+    "ctrl+z": "edge",
+    "ctrl+f": "edge",
+    "ctrl+a": "edge",
+    "ctrl+s": "edge",
+    "ctrl+x": "edge",
+    "ctrl+c": "edge",
+    "ctrl+v": "edge",
+    "ctrl+l": "edge",
+    "ctrl+w": "edge",
+    "ctrl+shift+e": "edge",
+    "ctrl+9": "edge",
+    "ctrl+u": "edge",
+    "alt+left": "edge",
+    "ctrl+shift+b": "edge",
+    "ctrl+enter": "edge",
+    "ctrl+shift+m": "edge",
+    "ctrl+1": "edge",
+    "ctrl+shift+j": "edge",
+    "ctrl+f5": "edge",
+    "ctrl+r": "edge",
+    "f5": "edge",
+    "ctrl+shift+v": "edge",
+    "ctrl+shift+tab": "edge",
+    "ctrl+shift+t": "edge",
+    "ctrl+tab": "edge",
+    "ctrl+t": "edge"
+  },
+  "browserShortcutChoiceByLayer": {
+    "1": {
+      "ctrl+shift+n": "edge",
+      "ctrl+z": "edge",
+      "ctrl+f": "edge",
+      "ctrl+a": "edge",
+      "ctrl+s": "edge",
+      "ctrl+x": "edge",
+      "ctrl+c": "edge",
+      "ctrl+v": "edge",
+      "ctrl+l": "edge",
+      "ctrl+w": "edge"
+    },
+    "2": {
+      "ctrl+shift+e": "edge",
+      "ctrl+9": "edge"
+    },
+    "3": {
+      "ctrl+f": "edge",
+      "ctrl+u": "edge",
+      "ctrl+a": "edge",
+      "alt+left": "edge"
+    },
+    "5": {
+      "ctrl+shift+b": "edge",
+      "ctrl+u": "edge",
+      "ctrl+enter": "edge",
+      "ctrl+shift+m": "edge"
+    },
+    "8": {
+      "ctrl+1": "edge",
+      "ctrl+9": "edge"
+    },
+    "9": {
+      "ctrl+shift+j": "edge",
+      "ctrl+a": "edge",
+      "ctrl+f5": "edge",
+      "ctrl+v": "edge",
+      "ctrl+r": "edge",
+      "f5": "edge",
+      "ctrl+c": "edge",
+      "ctrl+shift+v": "edge",
+      "ctrl+shift+tab": "edge"
+    },
+    "10": {
+      "ctrl+w": "edge",
+      "ctrl+shift+t": "edge",
+      "ctrl+shift+tab": "edge",
+      "ctrl+tab": "edge",
+      "ctrl+t": "edge"
+    }
   }
 }

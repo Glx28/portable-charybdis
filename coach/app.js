@@ -1090,13 +1090,37 @@
   }
 
   function appIconForRow(row) {
-    const app = rowApp(row);
+    const icons = state.shortcutAppIcons;
+    if (!icons) return null;
     const shortcut = clean(row.visual_label).replace(/\s+/g, "");
-    const selected = state.shortcutAppIcons?.shortcutOverrides?.[shortcut];
-    const iconId = selected || state.shortcutAppIcons?.apps?.[app];
+    const shortcutKey = shortcut.toLowerCase();
+    const override = icons.shortcutOverrides?.[shortcut];
+    const appRows = state.rows.filter((candidate) =>
+      clean(candidate.visual_label).replace(/\s+/g, "").toLowerCase() === shortcutKey && rowApp(candidate));
+    const appNames = [...new Set(appRows.map((candidate) => rowApp(candidate)))];
+    let selectedApp = rowApp(row);
+    let selectedByUsage = false;
+    if (appNames.length > 1) {
+      const preferred = icons.shortcutAppChoiceByLayer?.[clean(row.layer)]?.[shortcutKey]
+        || icons.shortcutAppChoice?.[shortcutKey];
+      const matched = appNames.find((name) => name.toLowerCase() === preferred);
+      if (matched) { selectedApp = matched; selectedByUsage = true; }
+      else if (override) selectedApp = appNames.find((name) => icons.apps?.[name] === override) || selectedApp;
+    }
+
+    if (selectedApp.toLowerCase() === "browser (chrome/edge)") {
+      const browserId = icons.browserShortcutChoiceByLayer?.[clean(row.layer)]?.[shortcutKey]
+        || icons.browserShortcutChoice?.[shortcutKey]
+        || "edge";
+      const browserAsset = icons.assets?.[browserId];
+      if (browserAsset) return { ...browserAsset, app: browserId === "chrome" ? "Google Chrome" : "Microsoft Edge" };
+    }
+
+    const useOverride = override && (!selectedByUsage || icons.apps?.[selectedApp] === override);
+    const iconId = useOverride ? override : icons.apps?.[selectedApp];
     if (!iconId) return null;
-    const asset = state.shortcutAppIcons?.assets?.[iconId];
-    return asset ? { ...asset, app: selected ? state.shortcutAppIcons?.overrideLabels?.[shortcut] || app : app } : null;
+    const asset = icons.assets?.[iconId];
+    return asset ? { ...asset, app: useOverride ? icons.overrideLabels?.[shortcut] || selectedApp : selectedApp } : null;
   }
 
   function functionIconForRow(row) {
@@ -1523,7 +1547,7 @@
           ? `<span class="key-badge" aria-hidden="true">${escapeHtml(visual.badge)}</span>`
           : "";
         const functionIconHtml = functionIcon
-          ? `<img class="key-function-icon" src="${escapeHtml(functionIcon.src)}" alt="${escapeHtml(functionIcon.name)}" title="${escapeHtml(functionIcon.name)}" loading="lazy" decoding="async">`
+          ? `<img class="key-function-icon${functionIcon.kind === "fluent" ? " key-function-icon-fluent" : ""}${functionIcon.flip ? " key-function-icon-flipped" : ""}" src="${escapeHtml(functionIcon.src)}" alt="${escapeHtml(functionIcon.name)}" title="${escapeHtml(functionIcon.name)}" loading="lazy" decoding="async">`
           : "";
         const secondaryHtml = visual.secondary
           ? `<div class="key-secondary">${escapeHtml(visual.secondary)}</div>`
