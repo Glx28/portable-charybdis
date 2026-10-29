@@ -8,6 +8,6 @@ Coach shows these icons on shortcut keys. Assets copied from this machine's inst
 - Windows Terminal: `Microsoft.WindowsTerminal` package `Images/Square44x44Logo.scale-200.png`.
 - Teams: installed `MSTeams` package `Images/TeamsForWorkNewStoreLogo.scale-200.png`.
 - Claude: official Claude favicon from `https://claude.ai/favicon.svg`.
-- M-Files: official logo asset from `https://developer.m-files.com/User-Experience/Logo/`.
+- M-Files: square M mark cropped from its official logo asset at `https://developer.m-files.com/User-Experience/Logo/` for icon readability.
 
 `shortcut_app_icons.json` maps declared application contexts to these assets. Shared shortcuts use the most-used documented application in the 30-day logger data where counts distinguish candidates: Ctrl+C and Ctrl+V show Windows Terminal (260 vs 169 and 371 vs 305 respectively, Terminal vs Browser); Win+Alt+Space shows the dedicated Command Palette icon. Generic browser shortcuts use Edge, the dominant browser in the logger data.
