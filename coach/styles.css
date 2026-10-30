@@ -623,8 +623,8 @@ svg {
   z-index: 1;
   top: 3px;
   right: 3px;
-  width: 70px;
-  height: 70px;
+  width: 80px;
+  height: 80px;
   padding: 2px;
   object-fit: contain;
   border: 1px solid rgba(255, 255, 255, 0.24);
