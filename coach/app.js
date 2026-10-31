@@ -1791,6 +1791,7 @@
       const current = queue.shift();
       const currentDist = dist.get(current);
       for (const edge of edges.get(current) || []) {
+        if (options.momentaryOnly && edge.kind !== "hold") continue;
         if (!dist.has(edge.target)) {
           dist.set(edge.target, currentDist + 1);
           queue.push(edge.target);
@@ -1810,6 +1811,7 @@
         return;
       }
       for (const edge of edges.get(current) || []) {
+        if (options.momentaryOnly && edge.kind !== "hold") continue;
         const currentDist = dist.has(current) ? dist.get(current) : Infinity;
         const nextDist = dist.has(edge.target) ? dist.get(edge.target) : Infinity;
         if (nextDist === currentDist + 1) {
@@ -1858,6 +1860,11 @@
       ? `+${result.total - result.paths.length} more path(s)`
       : "";
     return lines.join("\n") + (more ? "\n" + more : "");
+  }
+
+  function formatMomentaryAccessPath(targetLayer, targetRow) {
+    const result = shortestAccessPaths(targetLayer, { maxResults: 1, momentaryOnly: true });
+    return formatAccessPath(result, targetRow);
   }
 
   function buildSearchIndex() {
@@ -2385,6 +2392,9 @@
           && !NON_INPUT_ACTION_TEXTS.has(clean(live.lastAction))
           && isFreshActionTimestamp(live.lastActionAt);
         if (isRealNewAction) {
+          // A physical key press takes control back from a manually pinned
+          // preview layer, even if the beacon's key hint is missing or stale.
+          state.pinnedLayer = null;
           collapseInspectorOnPhysicalAction();
         }
         state.lastSeenActionKey = actionKey;
@@ -3253,7 +3263,8 @@
       for (const s of (cat.shortcuts || [])) {
         const preferredLayer = preferredLayers.get(clean(s.group));
         const matchedRow = rowForWorkflowShortcut(s, preferredLayer);
-        if (matchedRow) {
+        const bareBaseKey = String(matchedRow?.layer) === "0" && !clean(s.keys).includes("+");
+        if (matchedRow && !bareBaseKey) {
           const keys = displayKeysForShortcut(s, preferredLayer);
           results.push({
             row: matchedRow,
@@ -3683,10 +3694,14 @@
       checkDrillAnswer(matchInfo.row);
     }
 
-    if (learnState.active && learnEls.autoAdvance?.checked) {
+    if (learnState.active && learnEls.autoAdvance?.checked && !event.repeat) {
       const currentStep = learnState.shortcuts[learnState.index];
       if (currentStep && keyId(matchInfo.row) === keyId(currentStep.row)) {
-        setTimeout(learnAdvance, 500);
+        clearTimeout(learnState.advanceTimeout);
+        learnState.advanceTimeout = setTimeout(() => {
+          learnState.advanceTimeout = null;
+          learnAdvance();
+        }, 500);
       }
     }
 
@@ -3694,12 +3709,16 @@
   });
 
   // ----- Learn overlay (fullscreen guided app training) -----
-  const learnState = { active: false, appId: null, shortcuts: [], index: 0 };
+  const learnState = { active: false, appId: null, shortcuts: [], index: 0, advanceTimeout: null };
+  const COMMON_LEARN_SHORTCUTS = [
+    { keys: "F5", action: "Refresh current page or view", category: "Refresh" }
+  ];
   const learnEls = {
     overlay: document.getElementById("learnOverlay"),
     pickerView: document.getElementById("learnPickerView"),
     tourView: document.getElementById("learnTourView"),
     appGrid: document.getElementById("learnAppGrid"),
+    commonGrid: document.getElementById("learnCommonGrid"),
     closeBtn: document.getElementById("learnCloseButton"),
     backBtn: document.getElementById("learnBackToApps"),
     access: document.getElementById("learnAccess"),
@@ -3762,9 +3781,20 @@
   }
 
   function showLearnPicker() {
+    clearTimeout(learnState.advanceTimeout);
+    learnState.advanceTimeout = null;
     if (learnEls.pickerView) learnEls.pickerView.style.display = "";
     if (learnEls.tourView) learnEls.tourView.classList.add("learn-tour--hidden");
     if (learnEls.progress) learnEls.progress.textContent = "";
+    if (learnEls.commonGrid) {
+      learnEls.commonGrid.innerHTML = "";
+      const commonBtn = document.createElement("button");
+      commonBtn.type = "button";
+      commonBtn.className = "learn-app-card";
+      commonBtn.textContent = "Common / General";
+      commonBtn.addEventListener("click", startCommonLearnTour);
+      learnEls.commonGrid.appendChild(commonBtn);
+    }
     if (!learnEls.appGrid) return;
     learnEls.appGrid.innerHTML = "";
     for (const entry of (workflowState.index?.apps || [])) {
@@ -3780,6 +3810,8 @@
 
   function closeLearnOverlay() {
     if (!learnEls.overlay) return;
+    clearTimeout(learnState.advanceTimeout);
+    learnState.advanceTimeout = null;
     learnEls.overlay.classList.add("learn-overlay--hidden");
     learnState.active = false;
   }
@@ -3810,6 +3842,28 @@
     showLearnStep();
   }
 
+  function startCommonLearnTour() {
+    const shortcuts = COMMON_LEARN_SHORTCUTS.flatMap((shortcut) => {
+      const row = rowForShortcutKeys(shortcut.keys, shortcut.action);
+      if (!row || (String(row.layer) === "0" && !shortcut.keys.includes("+"))) return [];
+      return [{
+        row,
+        appAction: shortcut.action,
+        appKeys: shortcut.keys,
+        appKeysDisplay: displayKeysForShortcut(shortcut).display,
+        category: shortcut.category
+      }];
+    });
+    if (!shortcuts.length) return;
+    learnState.active = true;
+    learnState.appId = "common-general";
+    learnState.shortcuts = shortcuts;
+    learnState.index = 0;
+    if (learnEls.pickerView) learnEls.pickerView.style.display = "none";
+    if (learnEls.tourView) learnEls.tourView.classList.remove("learn-tour--hidden");
+    showLearnStep();
+  }
+
   function showLearnStep() {
     if (!learnState.active || !learnState.shortcuts.length) return;
     const idx = Math.max(0, Math.min(learnState.index, learnState.shortcuts.length - 1));
@@ -3817,6 +3871,7 @@
     const sc = learnState.shortcuts[idx];
     const layer = sc.row.layer;
     const layerName = dynamicLayerName(layer);
+    const holdPath = formatMomentaryAccessPath(layer, sc.row);
     const accessInfo = dynamicLayerAccessInfo(layer);
 
     if (learnEls.access) learnEls.access.innerHTML = accessInfo;
@@ -3824,7 +3879,7 @@
     learnEls.step.innerHTML = [
       `<strong>${escapeHtml(sc.appAction)}</strong>`,
       `<span class="learn-keys">${escapeHtml(sc.appKeysDisplay || sc.appKeys)}</span>`,
-      `<span class="learn-pos">Key: ${escapeHtml(clean(sc.row.visual_label))} &middot; x${sc.row.x}, y${sc.row.y} &middot; ${layerName}</span>`,
+      `<span class="learn-pos">${holdPath ? `Hold path: ${escapeHtml(holdPath)}` : "No momentary-hold path found"} &middot; Key: ${escapeHtml(clean(sc.row.visual_label))} &middot; ${escapeHtml(layerName)}</span>`,
     ].join("");
 
     if (learnEls.progress) learnEls.progress.textContent = `${idx + 1} / ${learnState.shortcuts.length} — ${sc.category}`;
@@ -3860,8 +3915,19 @@
 
   function learnAdvance() {
     if (!learnState.active) return;
+    clearTimeout(learnState.advanceTimeout);
+    learnState.advanceTimeout = null;
     learnState.index = Math.min(learnState.shortcuts.length - 1, learnState.index + 1);
     showLearnStep();
+  }
+
+  if (learnEls.autoAdvance) {
+    learnEls.autoAdvance.addEventListener("change", () => {
+      if (!learnEls.autoAdvance.checked) {
+        clearTimeout(learnState.advanceTimeout);
+        learnState.advanceTimeout = null;
+      }
+    });
   }
 
   if (document.getElementById("learnButton")) {
@@ -3869,7 +3935,7 @@
   }
   if (learnEls.closeBtn) learnEls.closeBtn.addEventListener("click", closeLearnOverlay);
   if (learnEls.backBtn) learnEls.backBtn.addEventListener("click", showLearnPicker);
-  if (learnEls.prevBtn) learnEls.prevBtn.addEventListener("click", () => { if (learnState.active) { learnState.index = Math.max(0, learnState.index - 1); showLearnStep(); } });
+  if (learnEls.prevBtn) learnEls.prevBtn.addEventListener("click", () => { if (learnState.active) { clearTimeout(learnState.advanceTimeout); learnState.advanceTimeout = null; learnState.index = Math.max(0, learnState.index - 1); showLearnStep(); } });
   if (learnEls.nextBtn) learnEls.nextBtn.addEventListener("click", learnAdvance);
 
   // ----- Key input debug overlay -----
