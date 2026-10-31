@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8"?>
+<WindowsPerformanceRecorder Version="1.0" Author="Charybdis diagnostics" Copyright="">
+  <Profiles>
+    <!-- 64 MiB circular kernel capture plus 128 MiB circular USB/HID capture. -->
+    <SystemCollector Id="CharybdisSystemCollector" Name="NT Kernel Logger">
+      <BufferSize Value="128" />
+      <Buffers Value="512" />
+    </SystemCollector>
+    <EventCollector Id="CharybdisUsbCollector" Name="Charybdis USB and HID">
+      <BufferSize Value="128" />
+      <Buffers Value="1024" />
+    </EventCollector>
+    <SystemProvider Id="CharybdisSystemProvider">
+      <Keywords>
+        <Keyword Value="CSwitch" />
+        <Keyword Value="DPC" />
+        <Keyword Value="Interrupt" />
+        <Keyword Value="ProcessThread" />
+        <Keyword Value="ReadyThread" />
+        <Keyword Value="Loader" />
+        <Keyword Value="Power" />
+        <Keyword Value="CpuConfig" />
+        <Keyword Value="WDFDPC" />
+        <Keyword Value="WDFInterrupt" />
+      </Keywords>
+      <Stacks>
+        <Stack Value="CSwitch" />
+        <Stack Value="ReadyThread" />
+      </Stacks>
+    </SystemProvider>
+    <EventProvider Id="USBHUB3" Name="AC52AD17-CC01-4F85-8DF5-4DCE4333C99B" Level="5" NonPagedMemory="true">
+      <Keywords><Keyword Value="0xffffffffffffffff" /></Keywords>
+    </EventProvider>
+    <EventProvider Id="USBXHCI" Name="30E1D284-5D88-459C-83FD-6345B39B19EC" Level="5" NonPagedMemory="true">
+      <Keywords><Keyword Value="0xffffffffffffffff" /></Keywords>
+    </EventProvider>
+    <EventProvider Id="UCX" Name="36DA592D-E43A-4E28-AF6F-4BC57C5A11E8" Level="5" NonPagedMemory="true">
+      <Keywords><Keyword Value="0xffffffffffffffff" /></Keywords>
+    </EventProvider>
+    <EventProvider Id="HIDCLASS" Name="6465DA78-E7A0-4F39-B084-8F53C7C30DC6" Level="5" NonPagedMemory="true">
+      <Keywords><Keyword Value="0xffffffffffffffff" /></Keywords>
+    </EventProvider>
+    <EventProvider Id="KernelPnP" Name="9C205A39-1250-487D-ABD7-E831C6290539" Level="5" NonPagedMemory="true">
+      <Keywords><Keyword Value="0xffffffffffffffff" /></Keywords>
+    </EventProvider>
+    <Profile Id="CharybdisUsb.Verbose.Memory" Name="CharybdisUsb" Description="Circular USB/HID and Windows scheduling diagnostics" DetailLevel="Verbose" LoggingMode="Memory">
+      <Collectors>
+        <SystemCollectorId Value="CharybdisSystemCollector">
+          <SystemProviderId Value="CharybdisSystemProvider" />
+        </SystemCollectorId>
+        <EventCollectorId Value="CharybdisUsbCollector">
+          <EventProviders>
+            <EventProviderId Value="USBHUB3" />
+            <EventProviderId Value="USBXHCI" />
+            <EventProviderId Value="UCX" />
+            <EventProviderId Value="HIDCLASS" />
+            <EventProviderId Value="KernelPnP" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+    <Profile Id="CharybdisUsb.Verbose.File" Name="CharybdisUsb" Description="USB/HID and Windows scheduling diagnostics" DetailLevel="Verbose" LoggingMode="File">
+      <Collectors>
+        <SystemCollectorId Value="CharybdisSystemCollector">
+          <SystemProviderId Value="CharybdisSystemProvider" />
+        </SystemCollectorId>
+        <EventCollectorId Value="CharybdisUsbCollector">
+          <EventProviders>
+            <EventProviderId Value="USBHUB3" />
+            <EventProviderId Value="USBXHCI" />
+            <EventProviderId Value="UCX" />
+            <EventProviderId Value="HIDCLASS" />
+            <EventProviderId Value="KernelPnP" />
+          </EventProviders>
+        </EventCollectorId>
+      </Collectors>
+    </Profile>
+  </Profiles>
+</WindowsPerformanceRecorder>

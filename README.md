@@ -41,6 +41,8 @@ Starting after `git pull` replaces helper/server processes from older Portable C
 
 `Start-Charybdis.cmd` starts both Coach and the keyboard logger. Startup waits for the current logger version to register its hooks and fails with a `hook_debug.log` path if logging did not initialize. Usage events are written to `runtime\shortcut_usage.jsonl` with the active layer. Norwegian symbol events include the physical key, translated output, modifier state (including AltGr), and active layer.
 
+On L1, x11,y2 opens PowerToys Command Palette normally. Adjacent x12,y2 is the dedicated **Walk This Way** switcher key. It opens the palette, waits until that window has focus, then types `<` to activate Walk This Way. Type part of the target app or window title and press Enter. Install and enable the Walk This Way Command Palette extension once on each computer; the portable helper handles the one-key sequence. The underlying trigger chord is `Ctrl+Alt+Win+F11` and is only consumed while Coach reports L1.
+
 ## Keyboard connection
 
 Coach layer tracking works automatically over USB. Firmware sends layer changes on a separate vendor-defined HID interface; the Windows helper reads that private interface, so layer keys never become host keypresses. USB switching between computers requires no Bluetooth pairing. Bluetooth-only use remains available through **Connect over Bluetooth** in Edge or Chrome; it is optional when connected by USB. Both channels require firmware with the Coach beacon feature.

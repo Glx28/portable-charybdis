@@ -88,16 +88,16 @@ HandleRawInput(wParam, lParam, msg, hwnd) {
                 HeldKeys.Delete(id)
             }
             WriteEvent(Map("type", "key_up", "device", deviceName, "vk", vk,
-                "scan", scan, "extended", extended, "held_ms", duration))
+                "handle", String(device), "scan", scan, "extended", extended, "held_ms", duration))
         } else if HeldKeys.Has(id) {
             HeldKeys[id]["repeat_count"] += 1
             HeldKeys[id]["last_repeat"] := now
             WriteEvent(Map("type", "key_repeat", "device", deviceName, "vk", vk,
-                "scan", scan, "extended", extended, "repeat_count", HeldKeys[id]["repeat_count"]))
+                "handle", String(device), "scan", scan, "extended", extended, "repeat_count", HeldKeys[id]["repeat_count"]))
         } else {
             HeldKeys[id] := Map("since", now, "warned", false, "repeat_count", 0, "device", deviceName, "vk", vk, "scan", scan, "extended", extended)
             WriteEvent(Map("type", "key_down", "device", deviceName, "vk", vk,
-                "scan", scan, "extended", extended))
+                "handle", String(device), "scan", scan, "extended", extended))
         }
     } else if kind = 0 && size >= data + 24 {
         buttons := NumGet(raw, data + 4, "UShort")
@@ -113,12 +113,12 @@ HandleRawInput(wParam, lParam, msg, hwnd) {
         buttonFlags := buttons & 0x3F3F
         if buttonFlags {
             bucket["buttons"] += 1
-            WriteEvent(Map("type", "mouse_button", "device", deviceName, "flags", buttonFlags))
+            WriteEvent(Map("type", "mouse_button", "device", deviceName, "handle", String(device), "flags", buttonFlags))
         }
         if (buttons & 0x0400) {
             wheel := wheelData >= 0x8000 ? wheelData - 0x10000 : wheelData
             bucket["wheel"] += wheel
-            WriteEvent(Map("type", "mouse_wheel", "device", deviceName, "delta", wheel))
+            WriteEvent(Map("type", "mouse_wheel", "device", deviceName, "handle", String(device), "delta", wheel))
         }
     }
     return DefRaw(hwnd, msg, wParam, lParam)
@@ -127,9 +127,19 @@ HandleRawInput(wParam, lParam, msg, hwnd) {
 HandleDeviceChange(wParam, lParam, msg, hwnd) {
     global DeviceNames
     device := lParam
-    name := GetDeviceName(device)
-    DeviceNames[device] := name
-    WriteEvent(Map("type", wParam = 1 ? "device_arrival" : "device_removal", "device", name))
+    if wParam = 1 {
+        name := GetDeviceName(device)
+        DeviceNames[device] := name
+    } else {
+        if DeviceNames.Has(device) {
+            name := DeviceNames[device]
+            DeviceNames.Delete(device)
+        } else {
+            name := GetDeviceName(device)
+        }
+    }
+    WriteEvent(Map("type", wParam = 1 ? "device_arrival" : "device_removal",
+        "device", name, "handle", String(device)))
 }
 
 GetDeviceName(device) {
@@ -161,7 +171,7 @@ FlushMouseBuckets() {
     for device, bucket in MouseBuckets {
         if bucket["packets"] > 0 {
             WriteEvent(Map("type", "mouse_motion_window", "device", bucket["device"],
-                "dx", bucket["dx"], "dy", bucket["dy"], "packets", bucket["packets"],
+                "handle", String(device), "dx", bucket["dx"], "dy", bucket["dy"], "packets", bucket["packets"],
                 "button_packets", bucket["buttons"], "wheel_delta", bucket["wheel"]))
         }
         bucket["dx"] := 0, bucket["dy"] := 0, bucket["packets"] := 0

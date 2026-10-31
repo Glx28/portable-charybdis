@@ -69,10 +69,12 @@
     "Discord": "discord"
   },
   "shortcutOverrides": {
-    "Win+Alt+Space": "cmdpal"
+    "Win+Alt+Space": "cmdpal",
+    "Ctrl+Alt+Win+F11": "cmdpal"
   },
   "overrideLabels": {
-    "Win+Alt+Space": "PowerToys Command Palette"
+    "Win+Alt+Space": "PowerToys Command Palette",
+    "Ctrl+Alt+Win+F11": "Walk This Way window switcher"
   },
   "usageSource": {
     "file": "shortcut_usage.jsonl",

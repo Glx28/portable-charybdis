@@ -23,6 +23,13 @@
       "explanation": "PowerToys Command Palette (CmdPal): the newer extensible launcher for commands, apps, files and window management. Requires a recent PowerToys version."
     },
     {
+      "name": "Walk This Way — switch windows",
+      "icon": "🪟",
+      "combo": "Ctrl+Alt+Win+F11",
+      "aliases": ["walk this way", "switch window", "switch windows", "focus edge", "focus open window"],
+      "explanation": "Dedicated Charybdis action: opens PowerToys Command Palette and sends the Walk This Way '<' activation alias. Type part of the open window title or app name. Requires the Walk This Way Command Palette extension."
+    },
+    {
       "name": "Open Microsoft Copilot",
       "icon": "✨",
       "combo": "Win+C",

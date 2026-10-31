@@ -1174,12 +1174,14 @@
       "x": 12,
       "y": 2,
       "behavior": "Key Press",
-      "parameter": "Keyboard J",
+      "parameter": "Keyboard F11",
       "modifiers": [
-        "L Ctrl"
+        "L Ctrl",
+        "L Alt",
+        "L GUI"
       ],
-      "label": "Ctrl+J",
-      "rationale": "evolved: Downloads",
+      "label": "Ctrl+Alt+Win+F11",
+      "rationale": "evolved: Walk This Way window switcher",
       "optimizer_changed": true,
       "apply_batch": true
     },

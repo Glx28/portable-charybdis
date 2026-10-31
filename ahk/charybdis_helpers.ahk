@@ -128,6 +128,10 @@ global LauncherGui := ""
 global LauncherEdit := ""
 global LauncherHint := ""
 
+if (A_Args.Length && A_Args[1] = "--self-test-event-layer") {
+    ExitApp(SelfTestEventLayerAttribution() ? 0 : 1)
+}
+
 EnsureRuntime()
 LoadEverything()
 LoadFirstSeen()
@@ -540,7 +544,10 @@ LogShortcutUsage(shortcutKeys, name := "") {
 
 BufferEvent(eventMap) {
     global EventBuffer
-    if !eventMap.Has("layer") {
+    hasLayer := eventMap.Has("layer")
+    if hasLayer
+        hasLayer := Trim(String(eventMap["layer"])) != ""
+    if !hasLayer {
         eventType := eventMap.Has("type") ? eventMap["type"] : ""
         if eventType = "layer_transition" && eventMap.Has("to") {
             eventMap["layer"] := String(eventMap["to"])
@@ -557,6 +564,40 @@ BufferEvent(eventMap) {
     }
     eventMap["ts"] := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ss") "Z"
     EventBuffer.Push(eventMap)
+}
+
+SelfTestEventLayerAttribution() {
+    global EventBuffer, HeldLayers, LockedLayer, ToggledLayers
+    HeldLayers := ["4"]
+    LockedLayer := ""
+    ToggledLayers := []
+
+    event := Map("type", "shortcut", "layer", "")
+    BufferEvent(event)
+    if event["layer"] != "4"
+        return false
+
+    event := Map("type", "shortcut")
+    BufferEvent(event)
+    if event["layer"] != "4"
+        return false
+
+    event := Map("type", "shortcut_sequence", "to_layer", "5")
+    BufferEvent(event)
+    if event["layer"] != "5"
+        return false
+
+    event := Map("type", "layer_transition", "to", "2")
+    BufferEvent(event)
+    if event["layer"] != "2"
+        return false
+
+    event := Map("type", "layer_bounce", "layers", ["1", "4"])
+    BufferEvent(event)
+    if event["layer"] != "4"
+        return false
+
+    return true
 }
 
 FlushEventBuffer() {
@@ -991,6 +1032,15 @@ RegisterAllHooks() {
             errors .= key ": " e.Message "`n"
         }
     }
+    ; L1's dedicated Walk This Way key uses this otherwise-unused trigger.
+    ; The host helper opens Command Palette, waits for its window, then types
+    ; the extension's '<' activation alias. Ordinary Win+Alt+Space stays plain.
+    try {
+        Hotkey "^!#F11", WalkThisWayTriggerCallback
+        registered++
+    } catch as e {
+        errors .= "^!#F11: " e.Message "`n"
+    }
     ; Modifier up events for modifier-tap detection
     for key in ["~Alt Up", "~Ctrl Up", "~LWin Up"] {
         try {
@@ -1055,6 +1105,44 @@ LogHotkeyCallback(hotkeyName) {
         LogNorwegianSymbolUsage(hotkeyName, keys, layer)
     } catch as e {
         try FileAppend("LogHotkeyCallback error: " hotkeyName " - " e.Message "`n", RuntimeDir "\hook_debug.log", "UTF-8")
+    }
+}
+
+WalkThisWayTriggerCallback(hotkeyName) {
+    global ModifierComboFired
+    try {
+        layer := "0"
+        try layer := CoachActiveLayer()
+        if layer != "1" {
+            ; Preserve the unusual chord unchanged outside its assigned layer.
+            Send("^!#{F11}")
+            return
+        }
+
+        ; This is a shortcut used on L1, not a layer-access key.
+        ModifierComboFired := true
+        keys := ParseHotkeyName(hotkeyName)
+        LogEventWithRepeatAndSequence("shortcut", keys, layer)
+        LogNorwegianSymbolUsage(hotkeyName, keys, layer)
+        Send("#!{Space}")
+        SetTimer(TypeWalkThisWayAlias, -50)
+    } catch as e {
+        try FileAppend("WalkThisWayTriggerCallback error: " hotkeyName " - " e.Message "`n", RuntimeDir "\hook_debug.log", "UTF-8")
+    }
+}
+
+TypeWalkThisWayAlias() {
+    ; Wait briefly for Command Palette, but never type '<' into another app.
+    Loop 24 {
+        processName := ""
+        title := ""
+        try processName := StrLower(WinGetProcessName("A"))
+        try title := StrLower(WinGetTitle("A"))
+        if processName = "microsoft.cmdpal.ui.exe" && !InStr(title, "settings") {
+            SendText("<")
+            return
+        }
+        Sleep(50)
     }
 }
 

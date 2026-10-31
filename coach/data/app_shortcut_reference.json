@@ -452,6 +452,7 @@
       "shortcuts": {
         "Alt+Space": "PowerToys Run launcher",
         "Win+Alt+Space": "PowerToys Command Palette (CmdPal)",
+        "Ctrl+Alt+Win+F11": "Walk This Way window switcher (Command Palette extension)",
         "Win+Shift+C": "Color Picker",
         "Win+Shift+T": "Text Extractor (OCR)",
         "Win+Shift+V": "Advanced Paste",

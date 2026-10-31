@@ -308,7 +308,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard Left Brace",
       "modifiers": [],
-      "label": "\u00e5",
+      "label": "å",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -440,7 +440,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard SemiColon and Colon",
       "modifiers": [],
-      "label": "\u00f8",
+      "label": "ø",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -452,7 +452,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard Left Apos and Double",
       "modifiers": [],
-      "label": "\u00e6",
+      "label": "æ",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -620,7 +620,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard Spacebar",
       "modifiers": [],
-      "label": "\u2423",
+      "label": "␣",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -1183,12 +1183,14 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "x": 12,
       "y": 2,
       "behavior": "Key Press",
-      "parameter": "Keyboard J",
+      "parameter": "Keyboard F11",
       "modifiers": [
-        "L Ctrl"
+        "L Ctrl",
+        "L Alt",
+        "L GUI"
       ],
-      "label": "Ctrl+J",
-      "rationale": "evolved: Downloads",
+      "label": "Ctrl+Alt+Win+F11",
+      "rationale": "evolved: Walk This Way window switcher",
       "optimizer_changed": true,
       "apply_batch": true
     },
@@ -5243,7 +5245,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard UpArrow",
       "modifiers": [],
-      "label": "\u2191",
+      "label": "↑",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5327,7 +5329,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard UpArrow",
       "modifiers": [],
-      "label": "\u2191",
+      "label": "↑",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5375,7 +5377,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard LeftArrow",
       "modifiers": [],
-      "label": "\u2190",
+      "label": "←",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5387,7 +5389,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard DownArrow",
       "modifiers": [],
-      "label": "\u2193",
+      "label": "↓",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5399,7 +5401,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard RightArrow",
       "modifiers": [],
-      "label": "\u2192",
+      "label": "→",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5459,7 +5461,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard LeftArrow",
       "modifiers": [],
-      "label": "\u2190",
+      "label": "←",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5471,7 +5473,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard DownArrow",
       "modifiers": [],
-      "label": "\u2193",
+      "label": "↓",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5483,7 +5485,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard RightArrow",
       "modifiers": [],
-      "label": "\u2192",
+      "label": "→",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
@@ -5663,7 +5665,7 @@ window.CHARYBDIS_FINAL_LAYOUT = {
       "behavior": "Key Press",
       "parameter": "Keyboard Spacebar",
       "modifiers": [],
-      "label": "\u2423",
+      "label": "␣",
       "rationale": "canonical (frozen/critical):",
       "optimizer_changed": false,
       "apply_batch": true
