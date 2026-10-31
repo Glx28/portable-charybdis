@@ -2724,10 +2724,30 @@
     return CATEGORY_EMOJI_MAP[name] || "";
   }
 
-  function rowForWorkflowShortcut(shortcut) {
+  function rowForWorkflowShortcut(shortcut, preferredLayer = null) {
     if (!shortcut) return null;
+    const candidates = workflowShortcutRows(shortcut);
+    if (preferredLayer !== null && preferredLayer !== undefined) {
+      const preferred = candidates.find((row) => String(row.layer) === String(preferredLayer));
+      if (preferred) return preferred;
+    }
+    if (candidates.length) return candidates[0];
+
+    return null;
+  }
+
+  function workflowShortcutRows(shortcut) {
+    if (!shortcut) return [];
+    const wanted = normalizeShortcutText(shortcut.keys);
+    if (wanted) {
+      const exact = allRows().filter((row) => !/transparent|none/i.test(row.behavior)
+        && shortcutCandidatesForRow(row).has(wanted)
+        && rowMatchesShortcut(row, shortcut.keys, shortcut.action));
+      if (exact.length) return exact;
+    }
+
     const byKeys = rowForShortcutKeys(shortcut.keys, shortcut.action);
-    if (byKeys) return byKeys;
+    if (byKeys) return [byKeys];
 
     // Legacy workflow files may contain stale position hints. Use those only
     // after key/action matching fails, because evolved layouts move layers.
@@ -2737,14 +2757,43 @@
       if (layerMatch && posMatch) {
         const layer = layerMatch[1];
         const row = (state.rowsByLayer.get(layer) || []).find((item) => item.x === posMatch[1] && item.y === posMatch[2]) || null;
-        if (row && rowMatchesShortcut(row, shortcut.keys, shortcut.action)) return row;
+        if (row && rowMatchesShortcut(row, shortcut.keys, shortcut.action)) return [row];
       }
     }
-    return rowForShortcutAction(shortcut.action);
+    const byAction = rowForShortcutAction(shortcut.action);
+    return byAction ? [byAction] : [];
   }
 
-  function displayKeysForShortcut(shortcut) {
-    const row = rowForWorkflowShortcut(shortcut);
+  function workflowGroupPreferredLayers(shortcuts) {
+    // For a declared shortcut group, prefer any layer that already holds
+    // the largest number of its members together.
+    const groups = new Map();
+    for (const shortcut of shortcuts || []) {
+      const group = clean(shortcut?.group);
+      if (!group) continue;
+      if (!groups.has(group)) groups.set(group, []);
+      groups.get(group).push(shortcut);
+    }
+
+    const preferred = new Map();
+    for (const [group, members] of groups) {
+      const membersByLayer = new Map();
+      for (const shortcut of members) {
+        const layers = new Set(workflowShortcutRows(shortcut).map((row) => String(row.layer)));
+        for (const layer of layers) {
+          if (!membersByLayer.has(layer)) membersByLayer.set(layer, new Set());
+          membersByLayer.get(layer).add(shortcut);
+        }
+      }
+      const best = [...membersByLayer.entries()].sort((a, b) =>
+        b[1].size - a[1].size || Number(a[0]) - Number(b[0]))[0];
+      if (best && best[1].size > 1) preferred.set(group, best[0]);
+    }
+    return preferred;
+  }
+
+  function displayKeysForShortcut(shortcut, preferredLayer = null) {
+    const row = rowForWorkflowShortcut(shortcut, preferredLayer);
     if (!row) {
       const gap = workflowShortcutGap(shortcut);
       return {
@@ -2867,9 +2916,11 @@
     }
     const query = workflowState.query.toLowerCase();
     let html = "";
+    const allShortcuts = (app.categories || []).flatMap((cat) => cat.shortcuts || []);
+    const preferredLayers = workflowGroupPreferredLayers(allShortcuts);
     for (const cat of (app.categories || [])) {
       const rows = cat.shortcuts.map((s) => {
-        const keys = displayKeysForShortcut(s);
+        const keys = displayKeysForShortcut(s, preferredLayers.get(clean(s.group)));
         const location = workflowLocationForRow(keys.row);
         const text = `${s.keys} ${s.action} ${s.charybdis || ""} ${keys.display || ""} ${location}`.toLowerCase();
         const hidden = query && !text.includes(query);
@@ -3194,12 +3245,16 @@
   function appShortcutRows(appId) {
     const app = workflowState.apps.get(appId);
     if (!app) return [];
+    const categories = app.categories || [];
+    const allShortcuts = categories.flatMap((cat) => cat.shortcuts || []);
+    const preferredLayers = workflowGroupPreferredLayers(allShortcuts);
     const results = [];
-    for (const cat of (app.categories || [])) {
+    for (const cat of categories) {
       for (const s of (cat.shortcuts || [])) {
-        const matchedRow = rowForWorkflowShortcut(s);
+        const preferredLayer = preferredLayers.get(clean(s.group));
+        const matchedRow = rowForWorkflowShortcut(s, preferredLayer);
         if (matchedRow) {
-          const keys = displayKeysForShortcut(s);
+          const keys = displayKeysForShortcut(s, preferredLayer);
           results.push({
             row: matchedRow,
             appAction: s.action,
