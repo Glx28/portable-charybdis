@@ -26,6 +26,10 @@ global ShortcutLogPath := RuntimeDir "\shortcut_usage.jsonl"
 global LastShortcutKeys := ""
 global LastShortcutTime := 0
 global LastShortcutApp := ""
+global LastCoachShortcutKey := ""
+global LastCoachShortcutAt := ""
+global LastCoachShortcutId := 0
+global LastCoachShortcutLayer := "0"
 
 ; ── Usage logger globals ──
 global EventBuffer := []
@@ -393,7 +397,7 @@ JsonKeyObject(key) {
 }
 
 WriteCoachState(logEvent := false) {
-    global StatePath, EventLogPath, CurrentCoachLayer, CoachBeaconSource, LastAction, LastActionAt, LastKey, HeldLayers, LockedLayer, ToggledLayers, LauncherVisible, HelperConfig
+    global StatePath, EventLogPath, CurrentCoachLayer, CoachBeaconSource, LastAction, LastActionAt, LastKey, HeldLayers, LockedLayer, ToggledLayers, LauncherVisible, HelperConfig, LastCoachShortcutKey, LastCoachShortcutAt, LastCoachShortcutId, LastCoachShortcutLayer
     try {
     EnsureRuntime()
     activeApp := ""
@@ -418,6 +422,10 @@ WriteCoachState(logEvent := false) {
         '"toggledLayers":' JsonArrayValue(ToggledLayers) "," .
         '"lastAction":' JsonStringValue(LastAction) "," .
         '"lastActionAt":' JsonStringValue(LastActionAt) "," .
+        '"lastCoachShortcut":' JsonStringValue(LastCoachShortcutKey) "," .
+        '"lastCoachShortcutAt":' JsonStringValue(LastCoachShortcutAt) "," .
+        '"lastCoachShortcutId":' LastCoachShortcutId "," .
+        '"lastCoachShortcutLayer":' JsonStringValue(LastCoachShortcutLayer) "," .
         '"lastKey":' JsonKeyObject(LastKey) "," .
         '"activeApp":' JsonStringValue(activeApp) "," .
         '"launcherVisible":' (LauncherVisible ? "true" : "false") "," .
@@ -1245,8 +1253,16 @@ FunctionalKeyUpCallback(hotkeyName) {
 }
 
 LogEventWithRepeatAndSequence(evtType, keys, layer) {
+    global LastCoachShortcutKey, LastCoachShortcutAt, LastCoachShortcutId, LastCoachShortcutLayer
     global LastRepeatKey, LastRepeatTime, RepeatCount, LastShortcutKeys, LastShortcutTime, LastShortcutApp, LastShortcutLayer, LayerSessionKeys, MouseSessionStart, MouseSessionShortcuts, LastMouseEventTime, LastKey, CurrentAppContext, AppContextAtTime, LastLoggedShortcutKeys, LastLoggedShortcutTime, ShortcutVelocityWindow
     now := A_TickCount
+    if evtType = "shortcut" || evtType = "layer_key" {
+        LastCoachShortcutKey := keys
+        LastCoachShortcutAt := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ss") "Z"
+        LastCoachShortcutId := now
+        LastCoachShortcutLayer := String(layer)
+        WriteCoachState(false)
+    }
 
     ; Track keys pressed during layer session
     if layer != "0" && LayerSessionKeys is Array {

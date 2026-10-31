@@ -91,6 +91,7 @@
     inspectorAutoExpanded: false,
     beaconBannerDismissed: false,
     lastSeenActionKey: null,
+    lastSeenCoachShortcutEvent: null,
     missedReadCount: 0
   };
 
@@ -2415,6 +2416,7 @@
     const live = isBlankSnapshot(fetched) ? null : fetched;
     state.lastState = live;
     if (live) {
+      consumeGlobalLearnShortcut(live);
       const actionKey = live.lastActionAt ? `${live.lastAction}@${live.lastActionAt}` : (live.lastAction || null);
       if (actionKey !== null) {
         const isRealNewAction = state.lastSeenActionKey !== null
@@ -2899,6 +2901,7 @@
       .replace(/ReturnEnter|Return/gi, "Enter")
       .replace(/Delete\s+Forward/gi, "Delete")
       .replace(/Spacebar/gi, "Space")
+      .replace(/(LEFT|RIGHT|UP|DOWN)ARROW/gi, "$1")
       .toUpperCase();
   }
 
@@ -3732,12 +3735,9 @@
       checkDrillAnswer(matchInfo.row);
     }
 
-    const currentStep = learnState.active ? learnState.shortcuts[learnState.index] : null;
-    const matchesLearnStep = currentStep && keyId(matchInfo.row) === keyId(currentStep.row);
-    if (matchesLearnStep) {
-      // Keep the matched shortcut inside Learn; the browser may claim combos like Alt+Left.
-      event.preventDefault();
-      if (learnEls.autoAdvance?.checked && !event.repeat) {
+    if (learnState.active && learnEls.autoAdvance?.checked && !event.repeat) {
+      const currentStep = learnState.shortcuts[learnState.index];
+      if (currentStep && keyId(matchInfo.row) === keyId(currentStep.row)) {
         clearTimeout(learnState.advanceTimeout);
         learnState.advanceTimeout = setTimeout(() => {
           learnState.advanceTimeout = null;
@@ -3900,6 +3900,37 @@
     if (learnEls.pickerView) learnEls.pickerView.style.display = "none";
     if (learnEls.tourView) learnEls.tourView.classList.remove("learn-tour--hidden");
     showLearnStep();
+  }
+
+  function consumeGlobalLearnShortcut(live) {
+    const eventId = Number(live?.lastCoachShortcutId);
+    const eventAt = Date.parse(live?.lastCoachShortcutAt || "");
+    const eventKeys = clean(live?.lastCoachShortcut);
+    if (!Number.isFinite(eventId) || !eventKeys || !Number.isFinite(eventAt)) return;
+
+    const eventIdentity = `${eventId}|${eventAt}|${eventKeys}|${clean(live?.lastCoachShortcutLayer)}`;
+    if (eventIdentity === state.lastSeenCoachShortcutEvent) return;
+    state.lastSeenCoachShortcutEvent = eventIdentity;
+
+    const currentStep = learnState.active ? learnState.shortcuts[learnState.index] : null;
+    if (!currentStep || !learnEls.autoAdvance?.checked) return;
+    if (Date.now() - eventAt > 60000 || eventAt - Date.now() > 5000) return;
+    const eventLayer = clean(live.lastCoachShortcutLayer);
+    if (eventLayer && eventLayer !== String(currentStep.row.layer)) return;
+
+    const observed = normalizeShortcutText(eventKeys);
+    const candidates = shortcutCandidatesForRow(currentStep.row);
+    for (const value of [currentStep.appKeys, currentStep.appKeysDisplay, hostShortcutForRow(currentStep.row), usShortcutForRow(currentStep.row)]) {
+      const normalized = normalizeShortcutText(value);
+      if (normalized) candidates.add(normalized);
+    }
+    if (!candidates.has(observed)) return;
+
+    clearTimeout(learnState.advanceTimeout);
+    learnState.advanceTimeout = setTimeout(() => {
+      learnState.advanceTimeout = null;
+      learnAdvance();
+    }, 500);
   }
 
   function showLearnStep() {
