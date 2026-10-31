@@ -1089,9 +1089,39 @@
     return clean(row.app || "");
   }
 
+  const COMMON_LEARN_SHORTCUTS = [
+    { keys: "F5", action: "Refresh current page or view", category: "Refresh", match: /refresh|reload/i },
+    { keys: "Ctrl+F", action: "Find on the current page or document", category: "Find / Search", match: /find|search/i },
+    { keys: "Ctrl+C", action: "Copy", category: "Clipboard / Edit", match: /\bcopy\b/i },
+    { keys: "Ctrl+V", action: "Paste", category: "Clipboard / Edit", match: /\bpaste\b/i },
+    { keys: "Ctrl+X", action: "Cut", category: "Clipboard / Edit", match: /\bcut\b/i },
+    { keys: "Ctrl+A", action: "Select all", category: "Clipboard / Edit", match: /select all/i },
+    { keys: "Ctrl+Z", action: "Undo", category: "Clipboard / Edit", match: /\bundo\b/i },
+    { keys: "Ctrl+Y", action: "Redo", category: "Clipboard / Edit", match: /\bredo\b/i },
+    { keys: "Ctrl+S", action: "Save", category: "File", match: /\bsave\b/i },
+    { keys: "Ctrl+P", action: "Print", category: "File", match: /\bprint\b/i }
+  ];
+  const COMMON_BARE_KEY_SIGNATURES = new Set(["ESC", "ESCAPE", "ENTER", "SPACE", "TAB", "BACKSPACE", "DELETE", "INSERT"]);
+
+  function isCommonShortcut(keys, action) {
+    const signature = normalizeShortcutText(keys);
+    const text = clean(action);
+    return COMMON_LEARN_SHORTCUTS.some((shortcut) =>
+      normalizeShortcutText(shortcut.keys) === signature && shortcut.match.test(text));
+  }
+
+  function isCommonShortcutRow(row) {
+    if (isCommonShortcut(row.visual_label, row.purpose)) return true;
+    const signature = normalizeShortcutText(row.visual_label);
+    const purpose = clean(row.purpose);
+    return COMMON_BARE_KEY_SIGNATURES.has(signature)
+      && (!purpose || /cancel|close|dismiss|confirm|accept|submit|back|escape|return/i.test(purpose));
+  }
+
   function appIconForRow(row) {
     const icons = state.shortcutAppIcons;
     if (!icons) return null;
+    if (isCommonShortcutRow(row)) return { file: "common.svg", app: "Common / General" };
     const shortcut = clean(row.visual_label).replace(/\s+/g, "");
     const shortcutKey = shortcut.toLowerCase();
     const override = icons.shortcutOverrides?.[shortcut];
@@ -3253,10 +3283,7 @@
   }
 
   function isCommonLearningShortcut(shortcut) {
-    const keys = normalizeShortcutText(shortcut?.keys);
-    const action = clean(shortcut?.action).toLowerCase();
-    return (keys === normalizeShortcutText("F5") && /refresh|reload/.test(action))
-      || (keys === normalizeShortcutText("Ctrl+F") && /find|search/.test(action));
+    return isCommonShortcut(shortcut?.keys, shortcut?.action);
   }
 
   function appShortcutRows(appId) {
@@ -3718,10 +3745,6 @@
 
   // ----- Learn overlay (fullscreen guided app training) -----
   const learnState = { active: false, appId: null, shortcuts: [], index: 0, advanceTimeout: null };
-  const COMMON_LEARN_SHORTCUTS = [
-    { keys: "F5", action: "Refresh current page or view", category: "Refresh" },
-    { keys: "Ctrl+F", action: "Find on the current page or document", category: "Find / Search" }
-  ];
   const learnEls = {
     overlay: document.getElementById("learnOverlay"),
     pickerView: document.getElementById("learnPickerView"),
