@@ -3943,7 +3943,7 @@
     const targetId = keyId(sc.row);
     const targetEl = learnEls.keyboardArea.querySelector(`[data-key-id="${CSS.escape(targetId)}"]`);
     if (targetEl) {
-      targetEl.classList.add("answer-correct");
+      targetEl.classList.add("learn-target");
       targetEl.scrollIntoView({ block: "center", inline: "center" });
     }
   }
