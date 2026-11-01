@@ -39,7 +39,7 @@ Starting after `git pull` replaces helper/server processes from older Portable C
 
 `Start-Charybdis.cmd` starts both Coach and the keyboard logger. Startup waits for the current logger version to register its hooks and fails with a `hook_debug.log` path if logging did not initialize. Usage events are written to `runtime\shortcut_usage.jsonl` with the active layer. Norwegian symbol events include the physical key, translated output, modifier state (including AltGr), and active layer.
 
-On L1, x11,y2 opens PowerToys Command Palette normally. Adjacent x12,y2 is the dedicated **Walk This Way** switcher key. It opens the palette, waits until that window has focus, then types `<` to activate Walk This Way. Type part of the target app or window title and press Enter. Install and enable the Walk This Way Command Palette extension once on each computer; the portable helper handles the one-key sequence. The underlying trigger chord is `Ctrl+Alt+Win+F11` and is only consumed while Coach reports L1.
+On L1, x2,y1 opens PowerToys Command Palette (`Win+Alt+Space`). Adjacent x1,y1 is the dedicated **Walk This Way** switcher key. It opens the palette, waits until that window has focus, then types `<` to activate Walk This Way. Type part of the target app or window title and press Enter. Install and enable the Walk This Way Command Palette extension once on each computer; the portable helper handles the one-key sequence. Its internal trigger chord is `Ctrl+Alt+Win+F11` and is only consumed while Coach reports L1. L1 x1,y0 remains PowerToys Run (`Alt+Space`).
 
 ## Keyboard connection
 
