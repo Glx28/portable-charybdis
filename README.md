@@ -41,6 +41,8 @@ Starting after `git pull` replaces helper/server processes from older Portable C
 
 On L1, x2,y1 opens PowerToys Command Palette (`Win+Alt+Space`). Adjacent x1,y1 is the dedicated **Walk This Way** switcher key. It opens the palette, waits until that window has focus, then types `<` to activate Walk This Way. Type part of the target app or window title and press Enter. Install and enable the Walk This Way Command Palette extension once on each computer; the portable helper handles the one-key sequence. Its internal trigger chord is `Ctrl+Alt+Win+F11` and is only consumed while Coach reports L1. L1 x1,y0 remains PowerToys Run (`Alt+Space`).
 
+The helper counts Norwegian punctuation keys from the matching Charybdis USB device, grouped by physical key, Shift/AltGr state, app process, and Coach layer. It does not store emitted characters or ordinary typed text.
+
 ## Keyboard connection
 
 Coach layer tracking works automatically over USB. Firmware sends layer changes on a separate vendor-defined HID interface; the Windows helper reads that private interface, so layer keys never become host keypresses. USB switching between computers requires no Bluetooth pairing. Bluetooth-only use remains available through **Connect over Bluetooth** in Edge or Chrome; it is optional when connected by USB. Both channels require firmware with the Coach beacon feature.
