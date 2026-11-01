@@ -16,7 +16,8 @@ A_MaxHotkeysPerInterval := 2000
 
 global ToolsRoot := ResolveToolsRoot()
 global ZmkConfigRoot := ResolveToolsRoot() "\keyboard-data"
-global LayoutCsvPath := ZmkConfigRoot "\layout\keybindings_explained.csv"
+; Coach data is the single layout source for both teaching UI and logger attribution.
+global LayoutCsvPath := ToolsRoot "\coach\data\keybindings_explained.csv"
 global AppsConfigPath := ZmkConfigRoot "\config\charybdis_apps.json"
 global HelperConfigPath := ZmkConfigRoot "\config\charybdis_helper.json"
 global RuntimeDir := ToolsRoot "\runtime"
@@ -571,6 +572,15 @@ SelfTestEventLayerAttribution() {
     HeldLayers := ["4"]
     LockedLayer := ""
     ToggledLayers := []
+    if CoachActiveLayer() != "4"
+        return false
+    HeldLayers := ["9", "6"]
+    if CoachActiveLayer() != "6"
+        return false
+    HeldLayers := ["3", "1"]
+    if CoachActiveLayer() != "1"
+        return false
+    HeldLayers := ["4"]
 
     event := Map("type", "shortcut", "layer", "")
     BufferEvent(event)
@@ -1716,26 +1726,19 @@ FileDeleteSafe(path) {
 
 CoachActiveLayer() {
     global HeldLayers, LockedLayer, ToggledLayers
-    if LockedLayer {
-        return LockedLayer
-    }
-
-    ; ZMK resolves simultaneously active layers by layer priority (highest
-    ; numbered active layer wins). Include toggled layers as well as held
-    ; layers so releasing a temporary scroll/overlay hold returns to the
-    ; actual underlying layer instead of falsely falling back to L0.
-    activeLayer := "0"
-    for layer in ToggledLayers {
-        if Integer(layer) > Integer(activeLayer) {
-            activeLayer := layer
-        }
-    }
+    ; Coach layer-access holds suspend held ancestors while a child is active.
+    ; The newest held target therefore matches the keymap layer in use even
+    ; when its numeric layer id is lower than an ancestor.
     for layer in HeldLayers {
-        if Integer(layer) > Integer(activeLayer) {
-            activeLayer := layer
-        }
+        activeLayer := layer
     }
-    return activeLayer
+    if HeldLayers.Length
+        return activeLayer
+    if LockedLayer
+        return LockedLayer
+    if ToggledLayers.Length
+        return ToggledLayers[ToggledLayers.Length]
+    return "0"
 }
 
 AddUniqueLayer(list, layer) {
@@ -2674,7 +2677,7 @@ RegisterCoachRawInput() {
     rawDevice := Buffer(8 + A_PtrSize, 0)
     NumPut("UShort", 0xFF00, rawDevice, 0) ; Coach vendor usage page
     NumPut("UShort", 0x0001, rawDevice, 2) ; Coach beacon collection
-    NumPut("UInt", 0x00000100, rawDevice, 4) ; RIDEV_INPUTSINK
+    NumPut("UInt", 0x00002100, rawDevice, 4) ; INPUTSINK | DEVNOTIFY
     NumPut("Ptr", A_ScriptHwnd, rawDevice, 8)
 
     if !DllCall("RegisterRawInputDevices", "Ptr", rawDevice, "UInt", 1,
@@ -2684,9 +2687,33 @@ RegisterCoachRawInput() {
         return false
     }
     OnMessage(0x00FF, HandleCoachRawInput)
+    OnMessage(0x00FE, HandleCoachRawInputDeviceChange)
     CoachBeaconSource := "ahk-usb-ready"
     WriteCoachState()
     return true
+}
+
+HandleCoachRawInputDeviceChange(wParam, lParam, msg, hwnd) {
+    ; GIDC_REMOVAL. A keyboard reset/reflash removes the private HID collection
+    ; without sending key-up beacon reports. Clear the old hold stack so Coach
+    ; cannot remain stranded on a layer that firmware has already released.
+    if wParam = 2
+        ResetCoachLayerState("Coach device disconnected")
+}
+
+ResetCoachLayerState(reason) {
+    global CurrentCoachLayer, HeldLayers, LockedLayer, ToggledLayers
+    global PreviousLayer, LastKey, LastAction, LastActionAt
+    EndLayerSession()
+    HeldLayers := []
+    LockedLayer := ""
+    ToggledLayers := []
+    CurrentCoachLayer := "0"
+    PreviousLayer := "0"
+    LastKey := Map("layer", "", "x", "", "y", "", "label", "")
+    LastAction := reason
+    LastActionAt := FormatTime(A_NowUTC, "yyyy-MM-ddTHH:mm:ss") "Z"
+    WriteCoachState(true)
 }
 
 HandleCoachRawInput(wParam, lParam, msg, hwnd) {

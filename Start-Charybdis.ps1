@@ -105,13 +105,6 @@ function Test-PortAvailable([int]$Port) {
     finally { $tcp.Stop() }
 }
 
-function Find-CoachPort([int]$Preferred) {
-    for ($port = $Preferred; $port -le [Math]::Min(65535, $Preferred + 99); $port++) {
-        if (Test-PortAvailable $port) { return $port }
-    }
-    throw "No free coach port found between $Preferred and $([Math]::Min(65535, $Preferred + 99))."
-}
-
 function Get-TrackedProcess([string]$RecordPath, [string]$CommandToken) {
     $record = Get-Json $RecordPath
     if (-not $record) { return $null }
@@ -231,17 +224,16 @@ function Start-PortableStack {
     if ($config -and $config.coach_server_port -ge 1 -and $config.coach_server_port -le 65535) {
         $preferredPort = [int]$config.coach_server_port
     }
-    $activePort = $preferredPort
-    if (Test-Path -LiteralPath $PortFile) {
-        try { $activePort = [int](Get-Content -Raw $PortFile) } catch { $activePort = $preferredPort }
-    }
-
     $serverProcess = Get-TrackedProcess $ServerPidFile "coach_http_server.py"
-    if ($serverProcess -and (Test-CoachServer $activePort)) {
+    if ($serverProcess -and (Test-CoachServer $preferredPort)) {
+        $activePort = $preferredPort
         Write-Info "Coach server already running at http://127.0.0.1:$activePort/charybdis-coach/"
     } else {
         Remove-Item -LiteralPath $ServerPidFile -Force -ErrorAction SilentlyContinue
-        $activePort = Find-CoachPort $preferredPort
+        if (-not (Test-PortAvailable $preferredPort)) {
+            throw "Configured Coach port $preferredPort is occupied by another process. No alternate Coach port will be started. Stop the competing service, then restart Portable Charybdis."
+        }
+        $activePort = $preferredPort
         $stdout = Join-Path $LogDir "coach-server.out.log"
         $stderr = Join-Path $LogDir "coach-server.err.log"
         $serverArgs = @(
@@ -259,7 +251,7 @@ function Start-PortableStack {
             if (Test-CoachServer $activePort) { $ready = $true; break }
             if ($serverProcess.HasExited) { break }
         }
-        if (-not $ready) { throw "Coach server did not become ready. See $stderr" }
+        if (-not $ready) { throw "Coach server did not become ready on configured port $preferredPort. See $stderr" }
         Write-Ok "Coach server ready on port $activePort."
     }
 
@@ -316,7 +308,10 @@ function Stop-PortableStack {
 
 function Show-Status {
     $port = 8765
-    if (Test-Path -LiteralPath $PortFile) { try { $port = [int](Get-Content -Raw $PortFile) } catch { } }
+    $config = Get-Json (Join-Path $Root "keyboard-data\config\charybdis_helper.json")
+    if ($config -and $config.coach_server_port -ge 1 -and $config.coach_server_port -le 65535) {
+        $port = [int]$config.coach_server_port
+    }
     $coach = Test-CoachServer $port
     $helper = [bool](Get-TrackedProcess $AhkPidFile "charybdis_helpers.ahk")
     Write-Host "Coach: $(if ($coach) { 'running' } else { 'stopped' })"

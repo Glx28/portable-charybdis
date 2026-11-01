@@ -27,17 +27,15 @@ You need Windows 10/11, internet access for the first launch, and Git to clone/p
 
 For input fault diagnosis, run `runtime\dependencies\autohotkey-2.0.28\AutoHotkey64.exe ahk\device_diagnostic.ahk`. It passively records physical key identifiers and mouse movement to `runtime\device_diagnostic.jsonl`; it does not capture typed characters or consume input. Exit from its tray icon menu.
 
-When port 8765 is occupied, the launcher finds another free local port and gives the coach that port. The browser coach is available from the helper tray menu as “Open Web Coach.”
+The Coach always uses `coach_server_port` from `keyboard-data\config\charybdis_helper.json` (8765 by default). If another process owns that port, startup stops with an error; it never starts a second Coach on a nearby port. The browser coach is available from the helper tray menu as “Open Web Coach.”
 
 To update, open this folder in PowerShell and run `git pull`, then run `Start-Charybdis.cmd -Action Restart`.
 
 ## Current keyboard layout
 
-`keyboard-data\layout\keybindings_explained.csv`, `final_user_layout_v2.json`, and the matching ZMK Studio apply/verify scripts use the gen6500 owner-feedback checkpoint re-evaluated at gen12000. Its 616 key positions are unchanged by the self-layer lock fix; same-layer toggles on L1–L10 now use lock-on behaviors, including the requested L7 self-toggle at `(8,4)`. The earlier frozen-config review recorded 20/20 eligible mouse-session shortcuts on L5 at mean effort 0.7375 and gap 87088.490. Recheck against the current owner constraints fails, including hold-target conflicts and owner-shortcut placement; this is a behavior correction to the existing layout, not a newly accepted candidate.
+`coach\data\keybindings_explained.csv` is the single authoritative layout table. Coach reads it directly; the Windows logger reads the same file for coordinate and layer attribution. `coach\data\final_user_layout_v2.json` and the matching apply/verify scripts are the companion export artifacts. There is no second layout copy under `keyboard-data\` that can silently drift. This repository supplies layout and Coach files, not firmware.
 
-The current bundle is the gen5000 review candidate with the requested L0 `(7,4)` change from `Ctrl+6` to a momentary L7 hold. It was applied to the connected keyboard: 560 non-L7 positions completed, then 438 eligible positions verified with 0 failures (L7 remains frozen and excluded). The ZMK Studio Save RPC request was submitted. This repository supplies layout and Coach files, not firmware.
-
-Starting after `git pull` replaces helper/server processes from older Portable Charybdis folders and repoints recognized Portable Charybdis sign-in shortcuts to this checkout. Other applications and unrelated AHK/Python processes are left alone.
+Starting after `git pull` replaces helper/server processes from older Portable Charybdis folders and repoints recognized Portable Charybdis sign-in shortcuts to this checkout. Other applications and unrelated AHK/Python processes are left alone. It keeps one configured Coach port; a conflicting listener causes an explicit startup error instead of a stale browser tab silently reaching another instance.
 
 `Start-Charybdis.cmd` starts both Coach and the keyboard logger. Startup waits for the current logger version to register its hooks and fails with a `hook_debug.log` path if logging did not initialize. Usage events are written to `runtime\shortcut_usage.jsonl` with the active layer. Norwegian symbol events include the physical key, translated output, modifier state (including AltGr), and active layer.
 
