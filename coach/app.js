@@ -2388,19 +2388,20 @@
   }
 
   function deriveLiveLayer(live) {
-    // State writers publish activeLayer as the resolved physical state. Prefer
-    // it over independently combining held/toggled lists, which may lag a base
-    // return while release beacons are still being processed.
-    if (live && live.activeLayer !== undefined && live.activeLayer !== null && String(live.activeLayer) !== "") {
-      return String(live.activeLayer);
-    }
-    // Dynamic priority: explicit lock, active hold, latest toggle, then base.
-    if (!live) return state.liveLayer;
+    if (!live) return "0";
+    // Access flags are authoritative. `activeLayer` can lag a release beacon
+    // or survive in a stale snapshot from another state writer.
     const toggled = normalizeLayerList(live.toggledLayers);
     const held = normalizeLayerList(live.heldLayers);
     if (live.lockedLayer) return String(live.lockedLayer);
     if (held.length) return held[held.length - 1];
     if (toggled.length) return toggled[toggled.length - 1];
+    if (["lockedLayer", "heldLayers", "toggledLayers"].some(
+      (key) => Object.prototype.hasOwnProperty.call(live, key)
+    )) return "0";
+    if (live.activeLayer !== undefined && live.activeLayer !== null && String(live.activeLayer) !== "") {
+      return String(live.activeLayer);
+    }
     return "0";
   }
 
@@ -2461,6 +2462,13 @@
     }
     const live = isBlankSnapshot(fetched) ? null : fetched;
     state.lastState = live;
+    if (!live) {
+      state.liveLayer = "0";
+      if (!state.pinnedLayer) state.displayedLayer = "0";
+      render();
+      renderNow();
+      return;
+    }
     if (live) {
       consumeGlobalLearnShortcut(live);
       const actionKey = live.lastActionAt ? `${live.lastAction}@${live.lastActionAt}` : (live.lastAction || null);
@@ -2492,7 +2500,10 @@
       const reportedDisplayLayer = live.displayedLayer !== undefined && live.displayedLayer !== null && String(live.displayedLayer) !== ""
         ? String(live.displayedLayer)
         : newLiveLayer;
-      const preferredDisplay = state.pinnedLayer || reportedDisplayLayer;
+      const hasExplicitAccessState = ["lockedLayer", "heldLayers", "toggledLayers"].some(
+        (key) => Object.prototype.hasOwnProperty.call(live, key)
+      );
+      const preferredDisplay = state.pinnedLayer || (hasExplicitAccessState ? newLiveLayer : reportedDisplayLayer);
       const layerChanged = newLiveLayer !== state.liveLayer;
       const displayChanged = preferredDisplay !== state.displayedLayer;
 

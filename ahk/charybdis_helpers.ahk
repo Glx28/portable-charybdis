@@ -155,6 +155,8 @@ if HelperConfig["show_coach_on_start"] {
 
 SetTimer(UpdateCoachContext, 1000)
 SetTimer(TrackAppFocus, 1000)
+; Keep the AHK layer-state owner timestamp current without changing access flags.
+SetTimer(() => WriteCoachState(false), 5000)
 SetTimer(PollCoachBeaconQueue, 100)
 SetTimer(FlushEventBuffer, FLUSH_INTERVAL)
 SetTimer(FlushPendingRepeat, 2500)
