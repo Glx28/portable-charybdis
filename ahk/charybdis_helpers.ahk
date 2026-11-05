@@ -2007,7 +2007,10 @@ CoachBeacon(kind, layer, direction, label := "") {
                     TouchAction("Layer " layer " held")
             } else {
                 EndLayerSession()
-                RemoveLayer(HeldLayers, layer)
+                ; A release ends the complete momentary access path. Clearing
+                ; the stack prevents a missed nested key-up from stranding
+                ; Coach on an ancestor layer after the user's fingers are up.
+                HeldLayers := []
                 CurrentCoachLayer := CoachActiveLayer()
                 ; Record return transition
                 if PreviousLayer != CurrentCoachLayer {
