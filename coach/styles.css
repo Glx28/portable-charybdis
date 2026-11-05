@@ -1465,6 +1465,7 @@ svg {
 .learn-thumb-key { display: grid; place-items: center; width: 15px; height: 15px; border: 1px solid var(--line); border-radius: 50%; background: var(--surface-2); color: transparent; font-size: 0; }
 .learn-thumb-key--active { border-color: #ff2929; background: #ff2929; box-shadow: 0 0 0 2px rgba(255, 41, 41, 0.2), 0 0 12px rgba(255, 41, 41, 0.7); }
 .learn-step {
+  position: relative;
   font-size: 1.4rem;
   font-weight: 600;
   color: var(--text);
@@ -1475,12 +1476,55 @@ svg {
   justify-content: center;
   flex-wrap: wrap;
   gap: 8px;
-  padding: 18px 24px;
+  padding: 42px 24px 16px;
   background: var(--surface);
   border: 1px solid var(--line);
   border-radius: 12px;
 }
 .learn-step strong { color: var(--accent); }
+.learn-app-contexts {
+  position: absolute;
+  top: 7px;
+  right: 8px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  max-width: min(65%, 420px);
+  overflow-x: auto;
+  padding: 2px;
+  border-radius: 7px;
+  background: rgba(8, 13, 19, 0.72);
+}
+.learn-app-context-icon {
+  flex: 0 0 25px;
+  width: 25px;
+  height: 25px;
+  padding: 2px;
+  object-fit: contain;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 5px;
+  background: var(--surface-2);
+}
+.learn-app-context-more {
+  color: var(--muted);
+  font-size: 0.7rem;
+  white-space: nowrap;
+}
+.learn-scope,
+.learn-symbol-note {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 500;
+  line-height: 1.2;
+}
+.learn-scope { color: var(--accent-2); }
+.learn-symbol-note { color: #d7adff; border-color: rgba(180, 128, 240, 0.45); }
 .learn-step .learn-keys {
   display: inline-block;
   padding: 5px 14px;

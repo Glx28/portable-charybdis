@@ -1107,6 +1107,102 @@
   ];
   const COMMON_BARE_KEY_SIGNATURES = new Set(["ESC", "ESCAPE", "ENTER", "SPACE", "TAB", "BACKSPACE", "DELETE", "INSERT"]);
 
+  const SHORTCUT_FAMILIES = [
+    ["copy", "Copy", "Clipboard / Edit", /\bcopy\b/i],
+    ["paste", "Paste", "Clipboard / Edit", /\bpaste\b/i],
+    ["cut", "Cut", "Clipboard / Edit", /\bcut\b/i],
+    ["select-all", "Select all", "Clipboard / Edit", /select all/i],
+    ["undo", "Undo", "Clipboard / Edit", /\bundo\b/i],
+    ["redo", "Redo", "Clipboard / Edit", /\bredo\b/i],
+    ["save", "Save", "File", /\bsave\b/i],
+    ["print", "Print", "File", /\bprint\b/i],
+    ["find", "Find / search", "Find / Search", /\bfind\b|\bsearch\b/i],
+    ["bold", "Bold", "Formatting", /\bbold\b/i],
+    ["italic", "Italic", "Formatting", /\bitalic\b/i],
+    ["underline", "Underline", "Formatting", /\bunderline\b/i],
+    ["refresh", "Refresh / reload", "Refresh", /\brefresh\b|\breload\b/i],
+    ["previous-tab", "Previous tab", "Tabs", /previous tab/i],
+    ["next-tab", "Next tab", "Tabs", /next tab/i],
+    ["back", "Go back", "Navigation", /navigate back|go back|^back$/i],
+    ["forward", "Go forward", "Navigation", /navigate forward|go forward|^forward$/i],
+    ["close", "Close tab / editor", "Window / Tab", /close (?:tab|window|editor|pane)/i],
+    ["rename", "Rename", "Files", /\brename\b/i],
+    ["address-bar", "Focus address bar", "Navigation", /focus address bar/i],
+    ["properties", "Open properties", "Files", /\bproperties\b/i],
+    ["open-file", "Open file / document", "File", /open (?:selected )?(?:file|document)/i],
+    ["new-item", "Create a new item", "File", /^new (?:window|file|document(?:\/object)?|object|mail|chat|folder|item|page)$/i],
+    ["zoom-in", "Zoom in", "Zoom", /zoom in/i],
+    ["zoom-out", "Zoom out", "Zoom", /zoom out/i],
+    ["zoom-reset", "Reset zoom", "Zoom", /reset zoom|zoom 100/i],
+    ["settings", "Open settings", "Settings", /open settings|^settings$/i],
+    ["new-line", "Insert a new line", "Text entry", /new line/i],
+    ["send", "Send message", "Messaging", /\bsend\b/i],
+    ["copilot-launch", "Open Copilot", "Windows / App launch", /open .*copilot/i]
+  ];
+
+  function shortcutFamily(shortcut) {
+    const action = clean(shortcut?.action);
+    return SHORTCUT_FAMILIES.find(([, , , pattern]) => pattern.test(action)) || null;
+  }
+
+  function ensureShortcutIndex() {
+    if (workflowState.shortcutIndex) return workflowState.shortcutIndex;
+    const byComboFamily = new Map();
+    for (const entry of (workflowState.index?.apps || [])) {
+      const app = workflowState.apps.get(entry.id);
+      if (!app) continue;
+      for (const category of (app.categories || [])) {
+        for (const shortcut of (category.shortcuts || [])) {
+          const family = shortcutFamily(shortcut);
+          if (!family) continue;
+          const key = `${normalizeShortcutText(shortcut.keys)}|${family[0]}`;
+          if (!byComboFamily.has(key)) byComboFamily.set(key, []);
+          byComboFamily.get(key).push({ appId: entry.id, appName: app.name || entry.name, shortcut, category: category.name });
+        }
+      }
+    }
+    workflowState.shortcutIndex = byComboFamily;
+    return byComboFamily;
+  }
+
+  function commonShortcutGroup(shortcut) {
+    const family = shortcutFamily(shortcut);
+    if (!family) return null;
+    const entries = ensureShortcutIndex().get(`${normalizeShortcutText(shortcut.keys)}|${family[0]}`) || [];
+    const appIds = [...new Set(entries.map((entry) => entry.appId))];
+    return appIds.length > 1 ? { family, entries, appIds } : null;
+  }
+
+  function learnerAppIcon(appId) {
+    const entry = (workflowState.index?.apps || []).find((item) => item.id === appId);
+    const app = workflowState.apps.get(appId);
+    const name = clean(app?.name || entry?.name).replace(/^[^\p{L}\p{N}]+/u, "");
+    const icons = state.shortcutAppIcons;
+    const aliases = appId === "mfiles_admin" ? ["M-Files Desktop Client"] : [];
+    const iconId = [name, entry?.name, ...aliases].map((candidate) => icons?.apps?.[candidate]).find(Boolean);
+    const asset = iconId && icons?.assets?.[iconId];
+    return asset ? { ...asset, app: name || entry?.name || appId } : null;
+  }
+
+  function learnerAppIconsMarkup(appIds, includeCommon = false) {
+    const icons = [];
+    if (includeCommon && state.shortcutAppIcons?.assets?.common) {
+      icons.push({ ...state.shortcutAppIcons.assets.common, app: "Common / General" });
+    }
+    for (const appId of appIds || []) {
+      const icon = learnerAppIcon(appId);
+      if (icon && !icons.some((item) => item.file === icon.file)) icons.push(icon);
+    }
+    if (!icons.length) return "";
+    const names = icons.map((icon) => icon.app);
+    const visible = icons.slice(0, 8);
+    const items = visible.map((icon) =>
+      `<img class="learn-app-context-icon" src="./assets/apps/${escapeHtml(icon.file)}" alt="" title="${escapeHtml(icon.app)}" aria-hidden="true">`
+    ).join("");
+    const more = icons.length > visible.length ? `<span class="learn-app-context-more" title="${escapeHtml(names.slice(8).join(", "))}">+${icons.length - visible.length}</span>` : "";
+    return `<span class="learn-app-contexts" aria-label="Useful in: ${escapeHtml(names.join(", "))}">${items}${more}</span>`;
+  }
+
   function isCommonShortcut(keys, action) {
     const signature = normalizeShortcutText(keys);
     const text = clean(action);
@@ -2541,7 +2637,7 @@
   }
 
   // ----- Workflow guide -----
-  const workflowState = { index: null, apps: new Map(), activeApp: null, query: "" };
+  const workflowState = { index: null, apps: new Map(), activeApp: null, query: "", shortcutIndex: null };
 
   async function loadWorkflowIndex() {
     workflowState.index = await loadJson("./workflows/index.json", { apps: [] });
@@ -2561,7 +2657,10 @@
       const entry = (workflowState.index.apps || []).find((a) => a.id === appId);
       if (!entry) return;
       const data = await loadJson(`./workflows/${entry.file}`, null);
-      if (data) workflowState.apps.set(appId, data);
+      if (data) {
+        workflowState.apps.set(appId, data);
+        workflowState.shortcutIndex = null;
+      }
     }
     workflowState.activeApp = workflowState.apps.get(appId) || null;
     renderWorkflow();
@@ -3091,7 +3190,10 @@
       els.practiceAppSelect.appendChild(opt);
       if (!workflowState.apps.has(entry.id)) {
         const data = await loadJson(`./workflows/${entry.file}`, null);
-        if (data) workflowState.apps.set(entry.id, data);
+      if (data) {
+        workflowState.apps.set(entry.id, data);
+        workflowState.shortcutIndex = null;
+      }
       }
     }
   }
@@ -3351,7 +3453,63 @@
   }
 
   function isCommonLearningShortcut(shortcut) {
-    return isCommonShortcut(shortcut?.keys, shortcut?.action);
+    return isCommonShortcut(shortcut?.keys, shortcut?.action)
+      || Boolean(commonShortcutGroup(shortcut));
+  }
+
+  function commonLearningShortcutRows() {
+    const groups = ensureShortcutIndex();
+    const results = [];
+    const seen = new Set();
+    for (const [key, entries] of groups) {
+      const appIds = [...new Set(entries.map((entry) => entry.appId))];
+      if (appIds.length < 2) continue;
+      const family = shortcutFamily(entries[0].shortcut);
+      if (!family) continue;
+      const identity = key;
+      if (seen.has(identity)) continue;
+      seen.add(identity);
+      const source = entries.find((entry) => rowForWorkflowShortcut(entry.shortcut));
+      if (!source) continue;
+      const row = rowForWorkflowShortcut(source.shortcut);
+      if (!row || (String(row.layer) === "0" && !clean(source.shortcut.keys).includes("+"))) continue;
+      const keys = displayKeysForShortcut(source.shortcut);
+      results.push({
+        row,
+        appAction: family[1],
+        appKeys: source.shortcut.keys,
+        appKeysDisplay: keys.display,
+        category: family[2],
+        relatedAppIds: appIds,
+        scopeLabel: `Common across ${appIds.length} apps`,
+        includeCommonIcon: true
+      });
+    }
+
+    for (const shortcut of COMMON_LEARN_SHORTCUTS) {
+      const family = shortcutFamily(shortcut);
+      const identity = `${normalizeShortcutText(shortcut.keys)}|${family?.[0] || clean(shortcut.action)}`;
+      if (seen.has(identity)) continue;
+      const row = rowForShortcutKeys(shortcut.keys, shortcut.action);
+      if (!row || (String(row.layer) === "0" && !shortcut.keys.includes("+"))) continue;
+      const apps = (workflowState.index?.apps || []).flatMap((entry) =>
+        (workflowState.apps.get(entry.id)?.categories || []).flatMap((category) =>
+          (category.shortcuts || []).some((item) => normalizeShortcutText(item.keys) === normalizeShortcutText(shortcut.keys)
+            && (shortcutFamily(item)?.[0] || "") === (family?.[0] || "")
+            ? [entry.id] : [])));
+      results.push({
+        row,
+        appAction: shortcut.action,
+        appKeys: shortcut.keys,
+        appKeysDisplay: displayKeysForShortcut(shortcut).display,
+        category: shortcut.category,
+        relatedAppIds: [...new Set(apps)],
+        scopeLabel: apps.length ? `Common across ${new Set(apps).size} apps` : "Common / General",
+        includeCommonIcon: true
+      });
+      seen.add(identity);
+    }
+    return results.sort((a, b) => a.category.localeCompare(b.category) || a.appAction.localeCompare(b.appAction));
   }
 
   function appShortcutRows(appId) {
@@ -3374,7 +3532,9 @@
             appAction: s.action,
             appKeys: s.keys,
             appKeysDisplay: keys.display,
-            category: cat.name
+            category: cat.name,
+            relatedAppIds: [appId],
+            scopeLabel: `App-specific · ${app.name}`
           });
         }
       }
@@ -3874,7 +4034,10 @@
     for (const entry of (workflowState.index?.apps || [])) {
       if (!workflowState.apps.has(entry.id)) {
         const data = await loadJson(`./workflows/${entry.file}`, null);
-        if (data) workflowState.apps.set(entry.id, data);
+        if (data) {
+          workflowState.apps.set(entry.id, data);
+          workflowState.shortcutIndex = null;
+        }
       }
     }
     showLearnPicker();
@@ -3943,17 +4106,7 @@
   }
 
   function startCommonLearnTour() {
-    const shortcuts = COMMON_LEARN_SHORTCUTS.flatMap((shortcut) => {
-      const row = rowForShortcutKeys(shortcut.keys, shortcut.action);
-      if (!row || (String(row.layer) === "0" && !shortcut.keys.includes("+"))) return [];
-      return [{
-        row,
-        appAction: shortcut.action,
-        appKeys: shortcut.keys,
-        appKeysDisplay: displayKeysForShortcut(shortcut).display,
-        category: shortcut.category
-      }];
-    });
+    const shortcuts = commonLearningShortcutRows();
     if (!shortcuts.length) return;
     learnState.active = true;
     learnState.appId = "common-general";
@@ -4009,9 +4162,16 @@
       renderLearnThumbPath(holdPath.thumbKeys);
     }
 
+    const relatedIcons = learnerAppIconsMarkup(sc.relatedAppIds || [], Boolean(sc.includeCommonIcon));
+    const symbolNote = /[<>]/.test(sc.appKeys)
+      ? '<span class="learn-symbol-note">Norwegian symbol-key cluster</span>'
+      : "";
     learnEls.step.innerHTML = [
+      relatedIcons,
       `<strong>${escapeHtml(sc.appAction)}</strong>`,
       `<span class="learn-keys">${escapeHtml(sc.appKeysDisplay || sc.appKeys)}</span>`,
+      `<span class="learn-scope">${escapeHtml(sc.scopeLabel || "App-specific")}</span>`,
+      symbolNote,
       `<span class="learn-pos">Key: ${escapeHtml(clean(sc.row.visual_label))} &middot; ${escapeHtml(layerName)}</span>`,
     ].join("");
 
