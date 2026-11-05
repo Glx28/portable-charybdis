@@ -64,6 +64,34 @@
         {
           "keys": "Win+Home",
           "action": "Minimize all except active"
+        },
+        {
+          "keys": "Alt+Esc",
+          "action": "Cycle through windows in the order they were opened"
+        },
+        {
+          "keys": "Ctrl+Alt+Tab",
+          "action": "Show open apps and switch with arrow keys"
+        },
+        {
+          "keys": "Win+Shift+Up",
+          "action": "Stretch the window vertically"
+        },
+        {
+          "keys": "Win+Shift+Down",
+          "action": "Restore a snapped or maximized window"
+        },
+        {
+          "keys": "Win+Shift+M",
+          "action": "Restore minimized windows"
+        },
+        {
+          "keys": "Win+Z",
+          "action": "Open Snap Layouts"
+        },
+        {
+          "keys": "Win+,",
+          "action": "Peek at the desktop while held"
         }
       ]
     },

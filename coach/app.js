@@ -1655,10 +1655,13 @@
   function currentAppShortcutMeaning(row) {
     const appName = appNameForActiveApp(state.lastState?.activeApp);
     if (!appName) return { appName: null, text: null };
-    const appData = state.appShortcutReference?.apps?.[appName];
+    const apps = state.appShortcutReference?.apps || {};
+    const appData = apps[appName];
     const label = clean(row.visual_label);
-    const text = appData?.shortcuts?.[label] || null;
-    return { appName, text };
+    const appText = appData?.shortcuts?.[label] || null;
+    if (appText) return { appName, meaningApp: appName, text: appText };
+    const windowsText = apps["Windows 11"]?.shortcuts?.[label] || null;
+    return { appName, meaningApp: windowsText ? "Windows 11" : appName, text: windowsText };
   }
 
   function renderCurrentAppMeaning(row) {
@@ -1667,13 +1670,15 @@
       els.selectedCurrentApp.textContent = "-";
       return;
     }
-    const { appName, text } = currentAppShortcutMeaning(row);
+    const { appName, meaningApp, text } = currentAppShortcutMeaning(row);
     if (!appName) {
       els.selectedCurrentApp.textContent = "No foreground app detected yet.";
       return;
     }
     if (text) {
-      els.selectedCurrentApp.textContent = `In ${appName} (your current app): ${text}`;
+      els.selectedCurrentApp.textContent = meaningApp === appName
+        ? `In ${appName} (your current app): ${text}`
+        : `Windows 11 shortcut while ${appName} is active: ${text}`;
     } else {
       const label = clean(row.visual_label) || "this key";
       els.selectedCurrentApp.textContent = `No ${appName} reference for ${label} - see Purpose/Notes below for its optimized meaning.`;

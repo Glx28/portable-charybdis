@@ -647,6 +647,8 @@
       ],
       "shortcuts": {
         "Alt+Tab": "Switch apps",
+        "Alt+Esc": "Cycle through open windows in the order they were opened",
+        "Ctrl+Alt+Tab": "View thumbnails of open apps and switch with arrow keys",
         "Win+Left": "Snap window left",
         "Win+Right": "Snap window right",
         "Win+S": "Search",
@@ -660,6 +662,11 @@
         "Win+Down": "Minimize / restore",
         "Win+Shift+Left": "Move to left monitor",
         "Win+Shift+Right": "Move to right monitor",
+        "Win+Shift+Up": "Stretch the window vertically",
+        "Win+Shift+Down": "Restore a snapped or maximized window",
+        "Win+Shift+M": "Restore minimized windows",
+        "Win+Z": "Open Snap Layouts",
+        "Win+,": "Peek at the desktop while held",
         "Win+E": "File Explorer",
         "Win+V": "Clipboard history",
         "Win+Shift+S": "Screenshot (Snip)",
@@ -710,11 +717,7 @@
         "Enter": "Send the current prompt",
         "Shift+Enter": "Insert a new line in the prompt",
         "Ctrl+C": "Copy selected text or a response",
-        "Ctrl+Z": "Undo the last text edit",
-        "Alt+Tab": "Switch between Copilot and the previous app",
-        "Win+Tab": "Choose Copilot or another open window",
-        "Win+Shift+Left": "Move the Copilot window to the left monitor",
-        "Win+Shift+Right": "Move the Copilot window to the right monitor"
+        "Ctrl+Z": "Undo the last text edit"
       }
     },
     "Microsoft Word": {
