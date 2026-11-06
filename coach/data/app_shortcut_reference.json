@@ -647,6 +647,8 @@
       ],
       "shortcuts": {
         "Alt+Tab": "Switch apps",
+        "Win+PgUp": "Switch to the previous window in the same FancyZones zone (PowerToys FancyZones)",
+        "Win+PgDn": "Switch to the next window in the same FancyZones zone (PowerToys FancyZones)",
         "Alt+Esc": "Cycle through open windows in the order they were opened",
         "Ctrl+Alt+Tab": "View thumbnails of open apps and switch with arrow keys",
         "Win+Left": "Snap window left",

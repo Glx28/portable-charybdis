@@ -27,6 +27,16 @@
           "charybdis": "L4 (x4,y2)"
         },
         {
+          "keys": "Win+PgUp",
+          "action": "Focus next window to the left across FancyZones and monitors",
+          "charybdis": "L1 (x8,y3)"
+        },
+        {
+          "keys": "Win+PgDn",
+          "action": "Focus next window to the right across FancyZones and monitors",
+          "charybdis": "L1 (x9,y3)"
+        },
+        {
           "keys": "Win+Left",
           "action": "Snap window left",
           "charybdis": "L3 (x9,y2)"

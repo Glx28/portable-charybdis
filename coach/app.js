@@ -77,6 +77,7 @@
     displayedLayer: "0",
     liveLayer: "0",
     pinnedLayer: null,
+    layerPreviewLocked: false,
     lastLiveKeySignature: "",
     selectedKey: null,
     query: "",
@@ -2525,7 +2526,29 @@
     render();
   }
 
+  function renderLayerPreviewLock() {
+    const button = document.getElementById("layerPreviewLockButton");
+    if (!button) return;
+    button.textContent = state.layerPreviewLocked ? "🔒" : "🔓";
+    button.title = state.layerPreviewLocked ? "Unlock layer preview" : "Lock layer preview";
+    button.setAttribute("aria-label", button.title);
+    button.setAttribute("aria-pressed", String(state.layerPreviewLocked));
+  }
+
+  function toggleLayerPreviewLock() {
+    state.layerPreviewLocked = !state.layerPreviewLocked;
+    if (state.layerPreviewLocked) {
+      state.pinnedLayer = state.displayedLayer;
+    } else {
+      state.pinnedLayer = null;
+      state.displayedLayer = state.liveLayer || "0";
+    }
+    renderLayerPreviewLock();
+    render();
+  }
+
   function releasePinnedLayer() {
+    if (state.layerPreviewLocked) return;
     if (!state.pinnedLayer) return;
     state.pinnedLayer = null;
     if (state.liveLayer && state.displayedLayer !== state.liveLayer) {
@@ -2581,7 +2604,7 @@
         if (isRealNewAction) {
           // A physical key press takes control back from a manually pinned
           // preview layer, even if the beacon's key hint is missing or stale.
-          state.pinnedLayer = null;
+          if (!state.layerPreviewLocked) state.pinnedLayer = null;
           collapseInspectorOnPhysicalAction();
         }
         state.lastSeenActionKey = actionKey;
@@ -2589,7 +2612,7 @@
 
       const newLiveLayer = deriveLiveLayer(live);
       const keySignature = liveKeySignature(live);
-      if (state.pinnedLayer && keySignature && state.lastLiveKeySignature && keySignature !== state.lastLiveKeySignature) {
+      if (!state.layerPreviewLocked && state.pinnedLayer && keySignature && state.lastLiveKeySignature && keySignature !== state.lastLiveKeySignature) {
         state.pinnedLayer = null;
       }
       if (keySignature) state.lastLiveKeySignature = keySignature;
@@ -2604,7 +2627,9 @@
       const hasExplicitAccessState = ["lockedLayer", "heldLayers", "toggledLayers"].some(
         (key) => Object.prototype.hasOwnProperty.call(live, key)
       );
-      const preferredDisplay = state.pinnedLayer || (hasExplicitAccessState ? newLiveLayer : reportedDisplayLayer);
+      const preferredDisplay = state.layerPreviewLocked
+        ? state.pinnedLayer || state.displayedLayer
+        : state.pinnedLayer || (hasExplicitAccessState ? newLiveLayer : reportedDisplayLayer);
       const layerChanged = newLiveLayer !== state.liveLayer;
       const displayChanged = preferredDisplay !== state.displayedLayer;
 
@@ -2625,6 +2650,7 @@
   }
 
   function render() {
+    renderLayerPreviewLock();
     renderLayerTabs();
     renderKeyboard();
     renderStatus();
@@ -3199,8 +3225,21 @@
   }
 
   async function init() {
+    const reviewId = new URLSearchParams(window.location.search).get("review");
+    const reviewLayouts = {
+      "manual-l1-20261106": {
+        path: "./data/review_candidates/layer1_right_hand_manual_20261106.csv",
+        layer: "1"
+      },
+      "usage-ranked-20261106": {
+        path: "./data/review_candidates/usage_ranked_layout_manual_20261106.csv",
+        layer: "2"
+      }
+    };
+    const reviewLayout = reviewLayouts[reviewId] || null;
+    const reviewLayoutPath = reviewLayout?.path || null;
     const [csvText, layoutSpec, appsConfig, hostKeyboard, appShortcutReference, fundamentalsConfig, shortcutAppIcons, functionIconManifest] = await Promise.all([
-      loadText("./data/keybindings_explained.csv"),
+      loadText(reviewLayoutPath || "./data/keybindings_explained.csv"),
       loadJson("./data/layout_spec.json", {}),
       loadJson("./data/charybdis_apps.json", { apps: [] }),
       loadJson("./data/windows_norwegian_host.json", null),
@@ -3210,6 +3249,11 @@
       loadJson("./data/function_icon_manifest.json", { purpose_rules: [] })
     ]);
     state.rows = normalizeRows(parseCsv(csvText));
+    if (reviewLayout) {
+      state.displayedLayer = reviewLayout.layer;
+      state.pinnedLayer = reviewLayout.layer;
+      state.layerPreviewLocked = true;
+    }
     state.layoutSpec = layoutSpec || {};
     state.hostKeyboard = hostKeyboard;
     state.apps = appsConfig.apps || [];
@@ -4225,6 +4269,9 @@
 
   if (document.getElementById("learnButton")) {
     document.getElementById("learnButton").addEventListener("click", openLearnOverlay);
+  }
+  if (document.getElementById("layerPreviewLockButton")) {
+    document.getElementById("layerPreviewLockButton").addEventListener("click", toggleLayerPreviewLock);
   }
   if (learnEls.closeBtn) learnEls.closeBtn.addEventListener("click", closeLearnOverlay);
   if (learnEls.backBtn) learnEls.backBtn.addEventListener("click", showLearnPicker);

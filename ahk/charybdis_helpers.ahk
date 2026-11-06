@@ -78,6 +78,11 @@ global AppContextAtTime := 0
 global FirstSeenMap := Map()
 global FirstSeenPath := RuntimeDir "\shortcut_first_seen.json"
 global ShortcutVelocityWindow := []  ; ring buffer for gap_ms samples
+global SpatialFocusEnumeration := []
+global SpatialFocusZOrder := 0
+global SpatialFocusCycleSignature := ""
+global SpatialFocusCycleHandles := []
+global SpatialFocusLastTarget := 0
 global ModifierErrorCandidate := Map("modifier", "", "time", 0)
 global LastShortcutLayer := "0"
 global LastShortcutOnLayerKeys := ""
@@ -132,7 +137,9 @@ global LauncherHint := ""
 if (A_Args.Length && A_Args[1] = "--self-test-event-layer") {
     ExitApp(SelfTestEventLayerAttribution() ? 0 : 1)
 }
-
+if (A_Args.Length && A_Args[1] = "--self-test-spatial-focus") {
+    ExitApp(SpatialFocusSelfTest())
+}
 EnsureRuntime()
 LoadEverything()
 LoadFirstSeen()
@@ -961,6 +968,8 @@ RegisterAllHooks() {
     ; Modifier + navigation/editing keys
     for key in ["Left", "Right", "Up", "Down", "Home", "End", "PgUp", "PgDn", "Delete", "Insert", "Tab", "Enter", "Space", "Backspace"] {
         for prefix in ["~^", "~^+", "~!", "~!+", "~#", "~#+", "~+"] {
+            if (prefix = "~#" && (key = "PgUp" || key = "PgDn"))
+                continue
             try {
                 Hotkey prefix key, LogHotkeyCallback
                 registered++
@@ -1106,7 +1115,7 @@ ParseHotkeyName(hk) {
 }
 
 LogHotkeyCallback(hotkeyName) {
-    global ModifierComboFired
+    global ModifierComboFired, RuntimeDir
     try {
         ModifierComboFired := true
         keys := ParseHotkeyName(hotkeyName)
@@ -1159,7 +1168,7 @@ TypeWalkThisWayAlias() {
 }
 
 LogFunctionalCallback(hotkeyName) {
-    global ModifierComboFired, FunctionalKeyDownTime, SpaceCount, BackspaceCount, EnterCount, LastLoggedShortcutKeys, LastLoggedShortcutTime, ModifierErrorCandidate
+    global ModifierComboFired, FunctionalKeyDownTime, SpaceCount, BackspaceCount, EnterCount, LastLoggedShortcutKeys, LastLoggedShortcutTime, ModifierErrorCandidate, RuntimeDir
     try {
         keys := ParseHotkeyName(hotkeyName)
         layer := "0"
@@ -1648,7 +1657,7 @@ ModifierUpCallback(hotkeyName) {
 ; ── App focus tracking ──
 
 TrackAppFocus() {
-    global LastFocusApp, LastFocusTime
+    global LastFocusApp, LastFocusTime, RuntimeDir
     activeApp := ""
     try activeApp := ActiveAppProcessName()
     if activeApp = "" || activeApp = LastFocusApp
@@ -2981,5 +2990,472 @@ F21::SendSafe("Generic clipboard history", "#v")
 F22::SendSafe("Generic snipping tool", "#+s")
 F23::SendSafe("Generic PowerToys Run", "#!{Space}")
 F24::SendSafe("Generic refresh", "{F5}")
+
+; FancyZones' same-zone cycling is disabled in PowerToys settings. Keep these
+; key positions and replace its MRU-like zone cycling with fresh spatial order.
+#PgUp::SpatialFocusMove(-1)  ; next window to the left
+#PgDn::SpatialFocusMove(1)   ; next window to the right
+
+SpatialFocusMove(direction, logUsage := true) {
+    global SpatialFocusCycleSignature, SpatialFocusCycleHandles, SpatialFocusLastTarget, RuntimeDir
+    static busy := false
+    if busy
+        return
+    busy := true
+    try {
+        if logUsage
+            LogHotkeyCallback(direction > 0 ? "~#PgUp" : "~#PgDn")
+        active := DllCall("GetForegroundWindow", "Ptr")
+        if (!active || SpatialFocusIsSystemDialog(active))
+            return
+
+        windows := SpatialFocusCycleGroup(SpatialFocusCollectWindows(), active)
+        if (windows.Length < 2) {
+            SpatialFocusCycleSignature := ""
+            SpatialFocusCycleHandles := []
+            SpatialFocusLastTarget := 0
+            return
+        }
+        activeIndex := 0
+        for index, item in windows {
+            if (item["hwnd"] = active) {
+                activeIndex := index
+                break
+            }
+        }
+        ; Do not steal focus from dialogs, menus, or windows outside the
+        ; interactive application list.
+        if !activeIndex {
+            SpatialFocusCycleSignature := ""
+            SpatialFocusCycleHandles := []
+            SpatialFocusLastTarget := 0
+            return
+        }
+
+        windows := SpatialFocusNavigationOrder(windows, active)
+        activeIndex := 0
+        for index, item in windows {
+            if (item["hwnd"] = active) {
+                activeIndex := index
+                break
+            }
+        }
+        nextIndex := SpatialFocusNextIndex(activeIndex, windows.Length, direction)
+        target := windows[nextIndex]["hwnd"]
+        activated := SpatialFocusActivate(target)
+        if activated {
+            SpatialFocusLastTarget := target
+        } else {
+            SpatialFocusLastTarget := 0
+        }
+    } finally {
+        busy := false
+    }
+}
+
+SpatialFocusCycleGroup(windows, active) {
+    activeFrontmost := -1
+    for _, item in windows {
+        if (item["hwnd"] = active) {
+            activeFrontmost := item.Has("frontmost") ? item["frontmost"] : true
+            break
+        }
+    }
+    if (activeFrontmost = -1)
+        return []
+    group := []
+    for _, item in windows {
+        isFrontmost := item.Has("frontmost") ? item["frontmost"] : true
+        if (isFrontmost = activeFrontmost)
+            group.Push(item)
+    }
+    return group
+}
+
+SpatialFocusCollectWindows() {
+    global SpatialFocusEnumeration, SpatialFocusZOrder
+    SpatialFocusEnumeration := []
+    SpatialFocusZOrder := 0
+
+    ; Read physical desktop coordinates on mixed-DPI monitor setups.
+    oldDpiContext := 0
+    try oldDpiContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -4, "Ptr")
+    callback := CallbackCreate(SpatialFocusEnumCallback, "F", 2)
+    try DllCall("EnumWindows", "Ptr", callback, "Ptr", 0, "Int")
+    finally {
+        CallbackFree(callback)
+        if oldDpiContext
+            DllCall("SetThreadDpiAwarenessContext", "Ptr", oldDpiContext, "Ptr")
+    }
+    return SpatialFocusSort(SpatialFocusEnumeration)
+}
+
+SpatialFocusEnumCallback(hwnd, lParam) {
+    global SpatialFocusEnumeration, SpatialFocusZOrder
+    zOrder := SpatialFocusZOrder
+    SpatialFocusZOrder += 1
+
+    if !DllCall("IsWindowVisible", "Ptr", hwnd, "Int")
+        return true
+    if DllCall("IsIconic", "Ptr", hwnd, "Int")
+        return true
+
+    exStyle := DllCall("GetWindowLongPtrW", "Ptr", hwnd, "Int", -20, "Ptr")
+    if (exStyle & 0x80) || (exStyle & 0x08000000) ; TOOLWINDOW or NOACTIVATE
+        return true
+    if DllCall("GetWindow", "Ptr", hwnd, "UInt", 4, "Ptr") && !(exStyle & 0x40000) ; owned, not APPWINDOW
+        return true
+
+    classBuffer := Buffer(512, 0)
+    DllCall("GetClassNameW", "Ptr", hwnd, "Ptr", classBuffer, "Int", 256, "Int")
+    className := StrGet(classBuffer)
+    if (className = "#32770" || className = "#32768" || className = "Progman"
+        || className = "WorkerW" || className = "Shell_TrayWnd"
+        || className = "Shell_SecondaryTrayWnd" || className = "NotifyIconOverflowWindow")
+        return true
+
+    titleLength := DllCall("GetWindowTextLengthW", "Ptr", hwnd, "Int")
+    if (titleLength < 1)
+        return true
+    titleBuffer := Buffer((titleLength + 1) * 2, 0)
+    DllCall("GetWindowTextW", "Ptr", hwnd, "Ptr", titleBuffer, "Int", titleLength + 1, "Int")
+    title := StrGet(titleBuffer)
+    if (title = "")
+        return true
+
+    cloaked := 0
+    try {
+        if (DllCall("dwmapi\DwmGetWindowAttribute", "Ptr", hwnd, "UInt", 14,
+            "UInt*", &cloaked, "UInt", 4, "Int") = 0 && cloaked)
+            return true
+    }
+
+    try processName := StrLower(WinGetProcessName("ahk_id " hwnd))
+    catch
+        return true
+    if (processName = "autohotkey64.exe" || processName = "powertoys.fancyzones.exe"
+        || processName = "microsoft.cmdpal.ui.exe"
+        || processName = "searchhost.exe" || processName = "startmenuexperiencehost.exe"
+        || processName = "shellexperiencehost.exe" || processName = "textinputhost.exe")
+        return true
+
+    rect := Buffer(16, 0)
+    if !DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", rect, "Int")
+        return true
+    left := NumGet(rect, 0, "Int")
+    top := NumGet(rect, 4, "Int")
+    right := NumGet(rect, 8, "Int")
+    bottom := NumGet(rect, 12, "Int")
+    width := right - left
+    height := bottom - top
+    if (width < 80 || height < 60)
+        return true
+
+    monitor := DllCall("MonitorFromWindow", "Ptr", hwnd, "UInt", 2, "Ptr")
+    if !monitor
+        return true
+    monitorInfo := Buffer(40, 0)
+    NumPut("UInt", 40, monitorInfo)
+    if !DllCall("GetMonitorInfoW", "Ptr", monitor, "Ptr", monitorInfo, "Int")
+        return true
+    monitorLeft := NumGet(monitorInfo, 4, "Int")
+    monitorTop := NumGet(monitorInfo, 8, "Int")
+    monitorRight := NumGet(monitorInfo, 12, "Int")
+    monitorBottom := NumGet(monitorInfo, 16, "Int")
+    if (Min(right, monitorRight) <= Max(left, monitorLeft)
+        || Min(bottom, monitorBottom) <= Max(top, monitorTop))
+        return true
+
+    SpatialFocusEnumeration.Push(Map(
+        "hwnd", hwnd, "title", title, "process", processName, "left", left, "top", top,
+        "right", right, "bottom", bottom, "width", width, "height", height,
+        "monitorKey", Format("{:X}", monitor),
+        "monitorLeft", monitorLeft,
+        "monitorTop", monitorTop,
+        "monitorWidth", monitorRight - monitorLeft,
+        "monitorHeight", monitorBottom - monitorTop,
+        "zOrder", zOrder
+    ))
+    return true
+}
+
+SpatialFocusIsSystemDialog(hwnd) {
+    classBuffer := Buffer(512, 0)
+    DllCall("GetClassNameW", "Ptr", hwnd, "Ptr", classBuffer, "Int", 256, "Int")
+    className := StrGet(classBuffer)
+    return className = "#32770" || className = "#32768"
+}
+
+SpatialFocusActivate(hwnd) {
+    if (!DllCall("IsWindow", "Ptr", hwnd, "Int")
+        || !DllCall("IsWindowVisible", "Ptr", hwnd, "Int")
+        || DllCall("IsIconic", "Ptr", hwnd, "Int"))
+        return false
+    if DllCall("SetForegroundWindow", "Ptr", hwnd, "Int")
+        return true
+
+    ; Win32 activation is blocked for some packaged and elevated windows.
+    ; AutoHotkey's native activation fallback handles those top-level windows.
+    try {
+        WinActivate("ahk_id " hwnd)
+        if WinWaitActive("ahk_id " hwnd,, 0.2)
+            return true
+    }
+
+    ; Retry by temporarily joining the foreground and target input queues.
+    foreground := DllCall("GetForegroundWindow", "Ptr")
+    if !foreground
+        return false
+    targetPid := 0
+    foregroundPid := 0
+    targetThread := DllCall("GetWindowThreadProcessId", "Ptr", hwnd, "UInt*", &targetPid, "UInt")
+    foregroundThread := DllCall("GetWindowThreadProcessId", "Ptr", foreground, "UInt*", &foregroundPid, "UInt")
+    if (!targetThread || !foregroundThread || targetThread = foregroundThread)
+        return false
+    if !DllCall("AttachThreadInput", "UInt", foregroundThread, "UInt", targetThread, "Int", true, "Int")
+        return false
+    try return DllCall("SetForegroundWindow", "Ptr", hwnd, "Int")
+    finally DllCall("AttachThreadInput", "UInt", foregroundThread, "UInt", targetThread, "Int", false, "Int")
+}
+
+SpatialFocusSort(items) {
+    monitors := Map()
+    for _, item in items {
+        key := item["monitorKey"]
+        if !monitors.Has(key)
+            monitors[key] := Map("key", key, "left", item["monitorLeft"], "top", item["monitorTop"],
+                "height", item["monitorHeight"], "windows", [])
+        monitors[key]["windows"].Push(item)
+    }
+
+    monitorList := []
+    for _, monitor in monitors
+        monitorList.Push(monitor)
+    SpatialFocusInsertionSort(monitorList, SpatialFocusCompareMonitors)
+
+    frontWindows := []
+    stackedWindows := []
+    for _, monitor in monitorList {
+        windows := monitor["windows"]
+        for _, window in windows {
+            coveredByFront := false
+            for _, other in windows {
+                if (other["zOrder"] < window["zOrder"] && SpatialFocusWindowsOverlap(other, window)) {
+                    coveredByFront := true
+                    break
+                }
+            }
+            window["frontmost"] := !coveredByFront
+            (coveredByFront ? stackedWindows : frontWindows).Push(window)
+        }
+    }
+
+    ; Keep frontmost and covered windows in separate spatial groups so covered
+    ; windows cannot interrupt navigation among the visible frontmost windows.
+    ordered := []
+    for _, group in [frontWindows, stackedWindows] {
+        for _, monitor in monitorList {
+            windows := []
+            for _, item in group {
+                if (item["monitorKey"] = monitor["key"])
+                    windows.Push(item)
+            }
+            for _, item in SpatialFocusOrderMonitorWindows(windows, monitor)
+                ordered.Push(item)
+        }
+    }
+    return ordered
+}
+
+SpatialFocusOrderMonitorWindows(windows, monitor) {
+    if (windows.Length < 2)
+        return windows
+    SpatialFocusInsertionSort(windows, SpatialFocusCompareVertical)
+    tolerance := Max(24, Min(64, Round(monitor["height"] * 0.04)))
+    rows := []
+    for _, window in windows {
+        rowIndex := 0
+        for index, row in rows {
+            if (Abs(window["top"] - row["anchor"]) <= tolerance) {
+                rowIndex := index
+                break
+            }
+        }
+        if !rowIndex {
+            rows.Push(Map("anchor", window["top"], "windows", []))
+            rowIndex := rows.Length
+        }
+        rows[rowIndex]["windows"].Push(window)
+    }
+    ordered := []
+    for _, row in rows {
+        SpatialFocusInsertionSort(row["windows"], SpatialFocusCompareHorizontal)
+        for _, window in row["windows"]
+            ordered.Push(window)
+    }
+    return ordered
+}
+
+SpatialFocusNavigationOrder(windows, active) {
+    global SpatialFocusCycleSignature, SpatialFocusCycleHandles, SpatialFocusLastTarget
+    signature := SpatialFocusSignature(windows)
+    if (signature != SpatialFocusCycleSignature || active != SpatialFocusLastTarget
+        || !SpatialFocusCycleHandles.Length) {
+        SpatialFocusCycleHandles := []
+        for _, item in windows
+            SpatialFocusCycleHandles.Push(item["hwnd"])
+        SpatialFocusCycleSignature := signature
+        return windows
+    }
+
+    return SpatialFocusApplyCachedOrder(windows, SpatialFocusCycleHandles)
+}
+
+SpatialFocusApplyCachedOrder(windows, handles) {
+    byHandle := Map()
+    for _, item in windows
+        byHandle[item["hwnd"]] := item
+    ordered := []
+    for _, hwnd in handles {
+        if byHandle.Has(hwnd)
+            ordered.Push(byHandle[hwnd])
+    }
+    return ordered.Length = windows.Length ? ordered : windows
+}
+
+SpatialFocusSignature(windows) {
+    stable := []
+    for _, item in windows
+        stable.Push(item)
+    SpatialFocusInsertionSort(stable, SpatialFocusCompareHandles)
+    signature := ""
+    for _, item in stable {
+        signature .= item["hwnd"] ":" item["left"] ":" item["top"] ":" item["right"] ":" item["bottom"] ":" item["monitorLeft"] ":" item["monitorTop"] ":" item["monitorWidth"] ":" item["monitorHeight"] ";"
+    }
+    return signature
+}
+
+SpatialFocusCompareHandles(a, b) {
+    return a["hwnd"] = b["hwnd"] ? 0 : (a["hwnd"] < b["hwnd"] ? -1 : 1)
+}
+
+SpatialFocusInsertionSort(items, compare) {
+    if (items.Length < 2)
+        return
+    Loop items.Length - 1 {
+        index := A_Index + 1
+        value := items[index]
+        cursor := index - 1
+        while (cursor >= 1 && compare.Call(items[cursor], value) > 0) {
+            items[cursor + 1] := items[cursor]
+            cursor -= 1
+        }
+        items[cursor + 1] := value
+    }
+}
+
+SpatialFocusCompareMonitors(a, b) {
+    if (a["left"] != b["left"])
+        return a["left"] < b["left"] ? -1 : 1
+    return a["top"] = b["top"] ? 0 : (a["top"] < b["top"] ? -1 : 1)
+}
+
+SpatialFocusCompareVertical(a, b) {
+    if (a["top"] != b["top"])
+        return a["top"] < b["top"] ? -1 : 1
+    if (a["left"] != b["left"])
+        return a["left"] < b["left"] ? -1 : 1
+    return a["zOrder"] = b["zOrder"] ? 0 : (a["zOrder"] < b["zOrder"] ? -1 : 1)
+}
+
+SpatialFocusCompareHorizontal(a, b) {
+    if SpatialFocusWindowsOverlap(a, b)
+        return a["zOrder"] = b["zOrder"] ? 0 : (a["zOrder"] < b["zOrder"] ? -1 : 1)
+    if (a["left"] != b["left"])
+        return a["left"] < b["left"] ? -1 : 1
+    if (a["top"] != b["top"])
+        return a["top"] < b["top"] ? -1 : 1
+    return a["zOrder"] = b["zOrder"] ? 0 : (a["zOrder"] < b["zOrder"] ? -1 : 1)
+}
+
+SpatialFocusWindowsOverlap(a, b) {
+    overlapWidth := Min(a["right"], b["right"]) - Max(a["left"], b["left"])
+    overlapHeight := Min(a["bottom"], b["bottom"]) - Max(a["top"], b["top"])
+    if (overlapWidth <= 0 || overlapHeight <= 0)
+        return false
+    overlapArea := overlapWidth * overlapHeight
+    smallerArea := Min(a["width"] * a["height"], b["width"] * b["height"])
+    return overlapArea >= smallerArea * 0.5
+}
+
+SpatialFocusNextIndex(index, count, direction) {
+    return Mod(index - 1 + direction + count, count) + 1
+}
+
+SpatialFocusSelfTest() {
+    items := [
+        Map("id", "right-monitor", "hwnd", 106, "monitorKey", "3", "monitorLeft", 1920, "monitorTop", 0, "monitorWidth", 980, "monitorHeight", 1080,
+            "left", 1920, "top", 0, "right", 2900, "bottom", 1000, "width", 980, "height", 1000, "zOrder", 6),
+        Map("id", "left-lower", "hwnd", 103, "monitorKey", "1", "monitorLeft", -1920, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", -1920, "top", 540, "right", -960, "bottom", 1080, "width", 960, "height", 540, "zOrder", 5),
+        Map("id", "left-upper-right", "hwnd", 102, "monitorKey", "1", "monitorLeft", -1920, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", -960, "top", 0, "right", 0, "bottom", 540, "width", 960, "height", 540, "zOrder", 4),
+        Map("id", "left-upper-left", "hwnd", 101, "monitorKey", "1", "monitorLeft", -1920, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", -1920, "top", 0, "right", -960, "bottom", 540, "width", 960, "height", 540, "zOrder", 3),
+        Map("id", "upper-monitor", "hwnd", 107, "monitorKey", "4", "monitorLeft", 0, "monitorTop", -1080, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", 0, "top", -1080, "right", 1920, "bottom", 0, "width", 1920, "height", 1080, "zOrder", 1),
+        Map("id", "stack-back", "hwnd", 105, "monitorKey", "2", "monitorLeft", 0, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", 0, "top", 0, "right", 1000, "bottom", 1000, "width", 1000, "height", 1000, "zOrder", 9),
+        Map("id", "stack-back-two", "hwnd", 108, "monitorKey", "2", "monitorLeft", 0, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", 0, "top", 0, "right", 1000, "bottom", 1000, "width", 1000, "height", 1000, "zOrder", 10),
+        Map("id", "stack-front", "hwnd", 104, "monitorKey", "2", "monitorLeft", 0, "monitorTop", 0, "monitorWidth", 1920, "monitorHeight", 1080,
+            "left", 0, "top", 0, "right", 1000, "bottom", 1000, "width", 1000, "height", 1000, "zOrder", 2)
+    ]
+    ordered := SpatialFocusSort(items)
+    expected := ["left-upper-left", "left-upper-right", "left-lower", "upper-monitor", "stack-front", "right-monitor", "stack-back", "stack-back-two"]
+    if (ordered.Length != expected.Length)
+        return 1
+    for index, item in ordered {
+        if (item["id"] != expected[index])
+            return 2
+    }
+    frontGroup := SpatialFocusCycleGroup(ordered, 104)
+    if (frontGroup.Length != 6)
+        return 7
+    backGroup := SpatialFocusCycleGroup(ordered, 105)
+    if (backGroup.Length != 2 || backGroup[1]["hwnd"] != 105 || backGroup[2]["hwnd"] != 108)
+        return 8
+    cachedHandles := []
+    for _, item in ordered
+        cachedHandles.Push(item["hwnd"])
+    refreshed := []
+    Loop ordered.Length {
+        index := ordered.Length - A_Index + 1
+        item := ordered[index]
+        if item.Has("zOrder")
+            item["zOrder"] := ordered.Length - index
+        refreshed.Push(item)
+    }
+    if (SpatialFocusSignature(ordered) != SpatialFocusSignature(refreshed))
+        return 3
+    stable := SpatialFocusApplyCachedOrder(refreshed, cachedHandles)
+    for index, item in stable {
+        if (item["id"] != expected[index])
+            return 4
+    }
+    originalRight := ordered[1]["right"]
+    signature := SpatialFocusSignature(ordered)
+    ordered[1]["right"] := originalRight + 1
+    geometryChanged := signature != SpatialFocusSignature(ordered)
+    ordered[1]["right"] := originalRight
+    if !geometryChanged
+        return 5
+    if !(SpatialFocusNextIndex(1, 4, -1) = 4
+        && SpatialFocusNextIndex(4, 4, 1) = 1
+        && SpatialFocusNextIndex(1, 4, 1) = 2
+        && SpatialFocusNextIndex(4, 4, -1) = 3)
+        return 6
+    return 0
+}
 
 ; Passive shortcut observer replaced by RegisterAllHooks() dynamic registration.

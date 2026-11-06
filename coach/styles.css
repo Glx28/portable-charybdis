@@ -1329,6 +1329,17 @@ svg {
   letter-spacing: 0.03em;
 }
 .learn-button:hover { background: var(--accent); color: var(--bg); }
+.layer-preview-lock-button {
+  width: 42px;
+  height: 42px;
+  border: 2px solid var(--accent);
+  background: #123128;
+  color: var(--text);
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+.layer-preview-lock-button:hover,
+.layer-preview-lock-button[aria-pressed="true"] { background: var(--accent); color: var(--bg); }
 .learn-overlay {
   position: fixed;
   inset: 0;
