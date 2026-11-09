@@ -25,6 +25,8 @@ Each link points to that host's own PowerToys Workspace ID. The keyboard sends t
 
 Create each workspace through PowerToys Workspaces on the target host so saved monitor IDs and geometry come from that computer. Use real windows and monitors when capturing; do not hand-edit PowerToys workspace JSON.
 
+On each host, set the Workspaces editor hotkey to Win+Ctrl+Ø and the FancyZones editor hotkey to Win+Shift+Ø, using the same keycode and modifiers. The personal PC currently has these distinct bindings at keycode 192. Confirm the work PC uses the Norwegian keyboard layout so the physical Ø key resolves to that keycode. Keep FancyZones `windowSwitching` disabled on both hosts so its Win+PgUp/PgDn same-zone action does not intercept the existing spatial focus controls; this is already disabled on the personal PC.
+
 ## Placement constraints
 
 - Personal PC: keep Terminal on the right monitor and preserve the existing left Edge placement.
@@ -32,6 +34,7 @@ Create each workspace through PowerToys Workspaces on the target host so saved m
 - Ignore File Explorer as a workspace target.
 - Save at least one full-screen arrangement and one split-window arrangement.
 - Work PC application/monitor assignments must be confirmed on that computer before saving its profiles.
+- Create host-local `Full` and `Split` PowerToys profiles, then point the identically named Desktop aliases at each host's own workspace IDs.
 
 ## Usage evidence
 
