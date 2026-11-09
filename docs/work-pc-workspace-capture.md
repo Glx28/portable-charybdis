@@ -41,7 +41,7 @@ Use the two monitors to the right of the reserved Edge/Coach monitor.
 - Leave Edge/Coach on the left monitor untouched and outside the workspace capture.
 - Teams: full-screen on the adjacent work monitor.
 - M-Files Desktop: full-screen on the remaining work monitor.
-- Create a desktop shortcut during save.
+- Enable **Move existing windows** and **Create desktop shortcut**.
 
 This gives the two highest-use work apps dedicated full-monitor space while preserving the user's Edge/Coach anchor.
 
@@ -50,24 +50,27 @@ This gives the two highest-use work apps dedicated full-monitor space while pres
 - Keep Edge/Coach untouched on the left monitor.
 - On the adjacent monitor, split Teams and Outlook side by side.
 - On the remaining monitor, split M-Files Desktop and M365 Copilot side by side.
-- Create a desktop shortcut during save.
+- Reuse the already-open Teams and M-Files Desktop windows from the Full capture; add Outlook and Copilot.
+- Enable **Move existing windows** and **Create desktop shortcut**.
 
 These are the strongest work-app pairs by measured co-use. Excel had more total events than Outlook, but its Teams co-use and transitions were lower. Leave Excel available as an app; do not substitute it in this first capture.
 
 ## Capture steps
 
-1. Confirm Workspaces and FancyZones are enabled and the work monitor arrangement is connected as normally used.
+1. Confirm all three monitors are connected in their normal arrangement and Workspaces is enabled. The one-monitor personal-PC state is temporary and must not drive this setup.
 2. Keep Edge/Coach on the left monitor in its current position. Do not include it in the capture.
-3. Open Teams, Outlook, M-Files Desktop, and M365 Copilot as needed. Arrange the Full profile first and capture only Teams and M-Files Desktop.
-4. In the Workspaces Editor, remove unrelated/minimized apps before saving. Do not include File Explorer, Edge/Coach, PowerToys Settings, terminals, or stale windows.
-5. Name it `Charybdis Work - Full`; enable **Create desktop shortcut**; leave **Move existing windows** off; save.
-6. Arrange and capture the Split profile with Teams/Outlook on one monitor and M-Files/Copilot on the other. Remove unrelated/minimized apps before saving.
-7. Name it `Charybdis Work - Split`; enable **Create desktop shortcut**; leave **Move existing windows** off; save.
-8. Confirm both profiles appear in the Workspaces Editor and that the Edge/Coach window never moved.
-9. Rename or copy the generated desktop shortcuts to the portable helper's expected aliases:
+3. Open Teams and M-Files Desktop. Arrange and capture the Full profile; exclude Edge/Coach and unrelated windows.
+4. Name it `Charybdis Work - Full`; enable **Move existing windows** and **Create desktop shortcut**; save.
+5. Keep Teams and M-Files Desktop open. Add Outlook and M365 Copilot, arrange the Split profile, and capture only those four work apps.
+6. Name it `Charybdis Work - Split`; enable **Move existing windows** and **Create desktop shortcut**; save.
+7. Keep the two existing host-local keyboard alias names; retarget them to the new profile IDs instead of adding another keyboard shortcut or a second shortcut manager:
    - `Charybdis Workspace - Full.lnk`
    - `Charybdis Workspace - Split.lnk`
-10. Verify each shortcut launches the intended profile on this host. Record each local PowerToys workspace ID and shortcut target in the task notes; do not put IDs into ZMK.
+8. If an alias already exists, update its launcher arguments in place and retain its icon. If missing, rename the PowerToys-created link to that alias. Do not leave duplicate Full/Split launcher links.
+9. Verify both aliases with the work apps already open. With **Move existing windows** enabled, existing apps should move to saved positions and missing apps should launch. App reuse can vary; add an app-supported reuse argument only if a duplicate appears.
+10. Record each local PowerToys workspace ID and alias target in the task notes; do not put IDs into ZMK. Do not move or resize the left Edge/Coach window.
+
+Microsoft documents **Move existing windows** as moving existing apps to their saved positions and launching the remaining apps ([PowerToys Workspaces](https://learn.microsoft.com/windows/powertoys/workspaces)). This option is enabled on the personal Full/Split profiles.
 
 ## Shared keyboard routing
 

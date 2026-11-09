@@ -40,6 +40,8 @@ The portable AHK helper resolves these Desktop links at runtime:
 
 Each link points to that host's own PowerToys Workspace ID. The keyboard sends the same F13/F14 outputs on both computers; no host-specific IDs are stored in ZMK. If an alias is missing, AHK shows a notice and does not launch a fallback workspace.
 
+Enable **Move existing windows** on both profiles. Existing apps are moved to their saved positions; apps missing from the desktop are launched. Reuse the existing Full/Split aliases by retargeting them to each host's local workspace IDs—do not create another keyboard shortcut manager or duplicate launcher links. [PowerToys Workspaces behavior](https://learn.microsoft.com/windows/powertoys/workspaces).
+
 Create work-PC profiles through PowerToys Workspaces on that host so saved monitor IDs and geometry come from that computer. The normal design target is always three monitors. The personal PC currently has one monitor attached only temporarily; do not design or capture a one-monitor workspace.
 
 The personal PC now has host-local profiles behind the existing Full/Split aliases:
