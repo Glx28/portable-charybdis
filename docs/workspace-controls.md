@@ -8,7 +8,7 @@ These positions are identical on every host. Existing L1 utilities remain on L1;
 |---|---|---|
 | x7,y0 | Win+Ctrl+Ø | PowerToys Workspaces editor |
 | x8,y0 | Win+Shift+Ø | PowerToys FancyZones editor |
-| x9,y0 | F13 | Launch this host's full-screen workspace |
+| x9,y0 | F13 | Launch this host's Full workspace |
 | x10,y0 | F14 | Launch this host's Split workspace |
 | x11,y0 | Ctrl+Shift+E | M-Files check in |
 | x12,y0 | Ctrl+E | M-Files check out / Teams search |
@@ -38,7 +38,7 @@ The portable AHK helper resolves these Desktop links at runtime:
 - `Charybdis Workspace - Full.lnk`
 - `Charybdis Workspace - Split.lnk`
 
-Each link points to that host's own PowerToys Workspace ID. The keyboard sends the same F13/F14 outputs on both computers; no host-specific IDs are stored in ZMK. If an alias is missing, AHK shows a notice and does not launch a fallback workspace.
+Each link points to that host's own PowerToys Workspace ID. Reuse the existing L2 bindings at x9,y0 (bare F13 → Full alias) and x10,y0 (bare F14 → Split alias); do not add duplicate Full/Split keys. Verify those outputs in the actual flashed layout and the portable AHK route. The same positions and F13/F14 outputs must work on both computers; only the alias targets and workspace IDs differ by host. No host-specific IDs go into ZMK. If an alias is missing, AHK shows a notice and does not launch a fallback workspace.
 
 Enable **Move existing windows** on both profiles. Existing apps are moved to their saved positions; apps missing from the desktop are launched. Reuse the existing Full/Split aliases by retargeting them to each host's local workspace IDs—do not create another keyboard shortcut manager or duplicate launcher links. [PowerToys Workspaces behavior](https://learn.microsoft.com/windows/powertoys/workspaces).
 
@@ -50,6 +50,14 @@ The personal PC now has host-local profiles behind the existing Full/Split alias
 - **Split:** Edge on the left, ChatGPT Edge PWA and YouTube Brave PWA side by side on the center display, Terminal on the right.
 
 The saved `di br te`, `di br te split`, and temporary capture remain unchanged. The work-PC profiles still need to be created on that host from its own three-monitor setup.
+
+## More workspaces and L2 access
+
+Full and Split are the shared direct actions, not a limit on useful workspace count. Return a ranked suggestion list for additional distinct workspaces justified by logger use or recurring tasks. First work-PC candidate: **M-Files Admin / configuration**, distinct from the Full/Split overview profiles. Refine its app grouping from current work-PC logs and co-use data.
+
+For each accepted additional workspace, propose a direct L2 right-hand position and HID output with a host-local desktop alias. Keep the same physical position and HID purpose on both computers. If no position remains, move the lowest-use non-essential L2 pool action to a useful layer other than L1 or protected L7; preserve it instead of overwriting it. Keep F13/F14 fixed for Full/Split.
+
+If additional profiles outnumber direct L2 keys, use one L2 binding to open the existing portable AHK launcher as a keyboard-selectable list of host-local workspace aliases. Extend that helper rather than adding another shortcut manager. Audit F15 and all candidate positions for conflicts before assignment. Update the shared layout candidate, Coach/export data, AHK alias routing, and both host handoffs together; keep the candidate unapplied until reviewed.
 
 On each host, set the Workspaces editor hotkey to Win+Ctrl+Ø and the FancyZones editor hotkey to Win+Shift+Ø, using the same keycode and modifiers. The personal PC currently has these distinct bindings at keycode 192. Confirm the work PC uses the Norwegian keyboard layout so the physical Ø key resolves to that keycode. Keep FancyZones `windowSwitching` disabled on both hosts so its Win+PgUp/PgDn same-zone action does not intercept the existing spatial focus controls; this is already disabled on the personal PC.
 
