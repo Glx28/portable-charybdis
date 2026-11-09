@@ -3234,6 +3234,10 @@
       "usage-ranked-20261106": {
         path: "./data/review_candidates/usage_ranked_layout_manual_20261106.csv",
         layer: "2"
+      },
+      "l2-workspaces-zmk-20261109": {
+        path: "./data/review_candidates/l2_workspaces_profiles_zmk_20261109.csv",
+        layer: "2"
       }
     };
     const reviewLayout = reviewLayouts[reviewId] || null;

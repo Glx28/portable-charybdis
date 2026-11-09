@@ -937,10 +937,10 @@ RegisterAllHooks() {
             }
         }
     }
-    ; Norwegian physical symbol cluster, including æ/ø/å and ISO's extra key.
+    ; Norwegian physical symbol cluster, including æ/ø/å, backslash, and ISO's extra key.
     ; Scan codes track emitted physical positions across keyboard layouts.
     ; AltGr outputs such as @ continue through the modifier hooks above.
-    for key in ["SC00C", "SC01A", "SC01B", "SC027", "SC028", "SC029", "SC02B", "SC033", "SC034", "SC035", "SC056"] {
+    for key in ["SC00C", "SC00D", "SC01A", "SC01B", "SC027", "SC028", "SC029", "SC02B", "SC033", "SC034", "SC035", "SC056"] {
         try {
             Hotkey "~" key, LogNorwegianPhysicalCallback
             registered++
@@ -1280,7 +1280,7 @@ LogNorwegianSymbolUsage(hotkeyName, keys, layer) {
     shifted := InStr(lowerHotkey, "+") > 0
     clusterKey := physicalKey = "[" || physicalKey = "]" || physicalKey = "``"
         || physicalKey = "-" || physicalKey = "=" || physicalKey = "\"
-        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC00C"
+        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC00C" || physicalKey = "SC00D"
         || physicalKey = "SC01A" || physicalKey = "SC01B" || physicalKey = "SC027"
         || physicalKey = "SC028" || physicalKey = "SC029" || physicalKey = "SC02B"
         || physicalKey = "SC033" || physicalKey = "SC034" || physicalKey = "SC035"
@@ -2889,7 +2889,25 @@ Esc::HideLauncher()
 #HotIf
 
 ; Norwegian ø/æ/å are direct on base layer (L0 11,2 / 12,2 / 12,1) via Windows Norwegian layout.
-; F13-F15 are spare L4 macro keys — do not inject Norwegian letters here (conflicts with beacon chords).
+; Bare F13-F15 launch this PC's saved PowerToys workspace aliases.
+; Modified F13-F15 chords remain reserved for Coach beacon transport.
+OpenSavedWorkspace(preset, key) {
+    desktopPath := A_Desktop "\Charybdis Workspace - " preset ".lnk"
+    actionName := "Open this PC's " StrLower(preset) " workspace"
+    if !FileExist(desktopPath) {
+        ShowNotice("Charybdis workspace", "Missing Desktop shortcut: " desktopPath, 5)
+        return
+    }
+    try {
+        RunSafe(actionName, '"' desktopPath '"')
+        LogShortcutUsage(key, actionName)
+    } catch as err {
+        ShowNotice("Charybdis workspace", err.Message, 5)
+    }
+}
+F13::OpenSavedWorkspace("Primary", "F13")
+F14::OpenSavedWorkspace("Split", "F14")
+F15::OpenSavedWorkspace("Full", "F15")
 
 ; =========
 ; Input helpers
