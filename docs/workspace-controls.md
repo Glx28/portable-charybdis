@@ -36,6 +36,15 @@ On each host, set the Workspaces editor hotkey to Win+Ctrl+Ø and the FancyZones
 - Work PC application/monitor assignments must be confirmed on that computer before saving its profiles.
 - Create host-local `Full` and `Split` PowerToys profiles, then point the identically named Desktop aliases at each host's own workspace IDs.
 
+## Provisional work-PC profile pairing
+
+The imported work log records frequent Edge↔Teams focus transitions (107 and 106 in the two directions). In co-use windows, M-Files Desktop appeared with M365 Copilot 35 times, and Teams with Excel 24 times. Starting arrangement to capture on the work PC:
+
+- **Full:** leave Edge/Coach on the left untouched; place Teams on the adjacent monitor and M-Files Desktop on the other monitor.
+- **Split:** keep Edge/Coach untouched; split Teams with Excel on one remaining monitor, and M-Files Desktop with M365 Copilot on the other.
+
+These are starting pairings from logger events, not measured active time. Confirm on the work machine that the chosen windows and monitor positions match the actual work setup before saving either profile. Exclude File Explorer from both captures.
+
 ## Usage evidence
 
 The personal-host log covers 2026-11-06 through 2026-11-09 (19,024 events); its most-recorded apps include Edge (5,856), Windows Terminal (3,444), Discord (1,501), and PowerToys Settings (1,186). The imported work-host log covers 2026-10-27 through 2026-10-31 (28,236 events); its most-recorded apps include Edge (7,063), M-Files Desktop (4,508), Excel (3,404), Teams (3,135), and M365 Copilot (2,394). Counts are logger events, not active time. L2 had 213 personal-host events and 31 imported work-host events in these windows, mostly Norwegian-symbol and layer events. The new editor/workspace bindings are therefore a user-requested trial pool; keep or move them based on future per-layer usage.
