@@ -289,32 +289,32 @@
 2,8,0,Win+Shift+Ø,Key Press,SemiColon and Colon,L GUI+L Shift,Open FancyZones editor,Personal host hotkey uses VK 0xC0; nb-NO physical ø key SC027 emits it.,manual review candidate
 2,9,0,F13,Key Press,F13,,Open this PC's full-screen workspace,Desktop alias: Charybdis Workspace - Full.lnk; host-specific target,manual review candidate
 2,10,0,F14,Key Press,F14,,Open this PC's split workspace,Desktop alias: Charybdis Workspace - Split.lnk; host-specific target,manual review candidate
-2,11,0,transparent,Transparent,,,,Spare after reserving full-screen and split workspace launch controls.,transparent
-2,12,0,transparent,Transparent,,,,Reserved; Task View remains available from L0 and has low post-layout usage.,transparent
+2,11,0,Ctrl+Shift+E,Key Press,E,L Ctrl+L Shift,Check in document (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
+2,12,0,Ctrl+E,Key Press,E,L Ctrl,Check out (M-Files) / Search (Teams),Work log: M-Files and Teams were among the most-used work apps; one chord serves each app context.,manual review candidate
 2,0,1,Shift+Delete,Key Press,Delete,L Shift,Permanent delete,"App: File Explorer, importance=0.45",evolved
 2,1,1,"Ctrl+,",Key Press,Comma and LessThan,L Ctrl,Settings,"App: Windows Terminal / PowerShell, importance=0.4",evolved
 2,2,1,Win+I,Key Press,I,L GUI,Settings,"App: Windows 11, importance=3.0",evolved
 2,3,1,Win+A,Key Press,A,L GUI,Quick settings / Action center,"App: Windows 11, importance=1.0",evolved
 2,4,1,Win+M,Key Press,M,L GUI,Minimize all windows,"App: Windows 11, importance=1.0",evolved
 2,5,1,Ctrl+Shift+T,Key Press,T,L Ctrl+L Shift,Reopen closed tab,"App: Browser (Chrome/Edge), importance=5.699999999999999",evolved
-2,7,1,transparent,Transparent,,,,,transparent
-2,8,1,transparent,Transparent,,,,,transparent
-2,9,1,transparent,Transparent,,,,,transparent
-2,10,1,transparent,Transparent,,,,,transparent
-2,11,1,transparent,Transparent,,,,,transparent
-2,12,1,transparent,Transparent,,,,,transparent
+2,7,1,Ctrl+G,Key Press,G,L Ctrl,Go to vault (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
+2,8,1,Alt+Enter,Key Press,Return Enter,L Alt,Open properties / metadata card (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
+2,9,1,Ctrl+N,Key Press,N,L Ctrl,New document/object (M-Files) / New chat (Teams),Same chord has app-specific behavior; keep one physical binding.,manual review candidate
+2,10,1,Ctrl+O,Key Press,O,L Ctrl,Open document/object (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
+2,11,1,Ctrl+Shift+D,Key Press,D,L Ctrl+L Shift,Download copy (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
+2,12,1,Ctrl+Shift+C,Key Press,C,L Ctrl+L Shift,Copy object link (M-Files),"Work log: MFDesktop.exe 4,508 events; trial app command, its individual use was not observed.",manual review candidate
 2,0,2,\,Key Press,Equals and Plus,,Norwegian backslash,nb-NO: unshifted Equals and Plus HID position emits \; grouped with the L2 Norwegian symbol cluster.,manual review candidate
 2,1,2,<,Key Press,Non-US Backslash and Pipe,,<,"Type <; Shift produces >, AltGr produces |; high-frequency Norwegian cluster",manual review candidate
 2,2,2,@,Key Press,2 and At,R Alt,@,AltGr+2 produces @; high-frequency Norwegian cluster,manual review candidate
 2,3,2,=,Key Press,0,L Shift,Norwegian equals,"On nb-NO, Shift+0 produces =; high-frequency Norwegian cluster",manual review candidate
 2,4,2,+,Key Press,Dash and Underscore,,+,Norwegian + key; high-frequency Norwegian cluster,manual review candidate
 2,5,2,?,Key Press,Dash and Underscore,L Shift,?,Shift+Norwegian + key produces ?; high-frequency Norwegian cluster,manual review candidate
-2,7,2,transparent,Transparent,,,,,transparent
-2,8,2,transparent,Transparent,,,,,transparent
-2,9,2,transparent,Transparent,,,,,transparent
-2,10,2,transparent,Transparent,,,,,transparent
-2,11,2,transparent,Transparent,,,,,transparent
-2,12,2,transparent,Transparent,,,,,transparent
+2,7,2,Ctrl+Shift+X,Key Press,X,L Ctrl+L Shift,Expand compose box (Teams),"Work log: Teams 3,135 app events.",manual review candidate
+2,8,2,Shift+Enter,Key Press,Return Enter,L Shift,Insert new line (Teams message),"Observed 16 times in work log, 2026-10-27 to 2026-10-31.",manual review candidate
+2,9,2,Ctrl+Enter,Key Press,Return Enter,L Ctrl,Send expanded message (Teams),"Work log: Teams 3,135 app events.",manual review candidate
+2,10,2,Ctrl+Shift+M,Key Press,M,L Ctrl+L Shift,Toggle microphone mute (Teams call),"Work log: Teams 3,135 app events; candidate action, per-shortcut use not observed.",manual review candidate
+2,11,2,Ctrl+R,Key Press,R,L Ctrl,Reply (Outlook),Work log: Outlook 858 app events.,manual review candidate
+2,12,2,Ctrl+Shift+R,Key Press,R,L Ctrl+L Shift,Reply all (Outlook),Work log: Outlook 858 app events.,manual review candidate
 2,0,3,transparent,Transparent,,,,,transparent
 2,1,3,Ctrl+Shift+L,Key Press,L,L Ctrl+L Shift,Autofill login,"App: Browser (Chrome/Edge), importance=9.5",evolved
 2,2,3,Win+Pause,Key Press,Pause,L GUI,System info,"App: Windows 11, importance=0.2",evolved
@@ -323,10 +323,10 @@
 2,5,3,transparent,Transparent,,,,,transparent
 2,7,3,L9,coach_l9_hold,,,Dynamic layer access: @access:L9:hold,Momentary access to usage-ranked layer 9,manual review candidate
 2,8,3,L1,coach_l1_toggle,,,Dynamic layer access: @access:L1:toggle,Target layer 1,evolved
-2,9,3,transparent,Transparent,,,,,transparent
-2,10,3,transparent,Transparent,,,,,transparent
-2,11,3,transparent,Transparent,,,,,transparent
-2,12,3,transparent,Transparent,,,,,transparent
+2,9,3,Ctrl+PageUp,Key Press,PageUp,L Ctrl,Previous worksheet (Excel),"Work log: Excel 3,404 app events.",manual review candidate
+2,10,3,Ctrl+PageDown,Key Press,PageDown,L Ctrl,Next worksheet (Excel),"Work log: Excel 3,404 app events.",manual review candidate
+2,11,3,Ctrl+1,Key Press,1 and Bang,L Ctrl,Format Cells (Excel),"Work log: Excel 3,404 app events.",manual review candidate
+2,12,3,Ctrl+H,Key Press,H,L Ctrl,Find and replace (Excel),"Work log: Excel 3,404 app events.",manual review candidate
 2,3,4,transparent,Transparent,,,,,transparent
 2,4,4,transparent,Transparent,,,,,transparent
 2,5,4,transparent,Transparent,,,,,transparent
