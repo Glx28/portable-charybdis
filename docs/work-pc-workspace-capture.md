@@ -4,7 +4,9 @@
 
 Create two host-local PowerToys Workspaces profiles on the work PC. This file is for the coding agent operating on that PC, where its actual displays and windows are available. Do not copy monitor coordinates or workspace IDs from the personal PC.
 
-The personal machine has different monitor assignments: keep its left Edge window and right Windows Terminal window in place. The personal Full/Split profiles `di br te` and `di br te split` already exist. They are not new profiles from this task. The requested new personal capture remains pending.
+The normal workspace target is always three monitors. A temporary one-monitor state on the personal PC is not a design target. Keep the personal machine's left Edge and right Windows Terminal placements.
+
+The personal machine now has host-local profiles behind its Full/Split desktop aliases. Full keeps Edge left, puts Brave full-screen on the center monitor, and keeps Terminal full-screen on the right. Split keeps Edge left, puts the ChatGPT Edge PWA and YouTube Brave PWA side by side on the center monitor, and keeps Terminal on the right. Existing `di br te` and `di br te split` profiles remain unchanged. Do not copy personal monitor IDs or workspace IDs to the work PC.
 
 ## Work-log evidence
 

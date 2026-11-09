@@ -40,7 +40,14 @@ The portable AHK helper resolves these Desktop links at runtime:
 
 Each link points to that host's own PowerToys Workspace ID. The keyboard sends the same F13/F14 outputs on both computers; no host-specific IDs are stored in ZMK. If an alias is missing, AHK shows a notice and does not launch a fallback workspace.
 
-Create each workspace through PowerToys Workspaces on its target host so saved monitor IDs and geometry come from that computer. Use real windows and monitors when capturing; do not hand-edit PowerToys workspace JSON. The personal Full/Split profiles already exist as `di br te` and `di br te split`; this task has not created new PowerToys profiles there. The missing profiles are on the work PC.
+Create work-PC profiles through PowerToys Workspaces on that host so saved monitor IDs and geometry come from that computer. The normal design target is always three monitors. The personal PC currently has one monitor attached only temporarily; do not design or capture a one-monitor workspace.
+
+The personal PC now has host-local profiles behind the existing Full/Split aliases:
+
+- **Full:** Edge on the left, Brave full-screen on the center display, Terminal full-screen on the right.
+- **Split:** Edge on the left, ChatGPT Edge PWA and YouTube Brave PWA side by side on the center display, Terminal on the right.
+
+The saved `di br te`, `di br te split`, and temporary capture remain unchanged. The work-PC profiles still need to be created on that host from its own three-monitor setup.
 
 On each host, set the Workspaces editor hotkey to Win+Ctrl+Ø and the FancyZones editor hotkey to Win+Shift+Ø, using the same keycode and modifiers. The personal PC currently has these distinct bindings at keycode 192. Confirm the work PC uses the Norwegian keyboard layout so the physical Ø key resolves to that keycode. Keep FancyZones `windowSwitching` disabled on both hosts so its Win+PgUp/PgDn same-zone action does not intercept the existing spatial focus controls; this is already disabled on the personal PC.
 
