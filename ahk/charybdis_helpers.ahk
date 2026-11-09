@@ -2905,9 +2905,8 @@ OpenSavedWorkspace(preset, key) {
         ShowNotice("Charybdis workspace", err.Message, 5)
     }
 }
-F13::OpenSavedWorkspace("Primary", "F13")
+F13::OpenSavedWorkspace("Full", "F13")
 F14::OpenSavedWorkspace("Split", "F14")
-F15::OpenSavedWorkspace("Full", "F15")
 
 ; =========
 ; Input helpers

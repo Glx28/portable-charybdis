@@ -1,4 +1,4 @@
-layer,x,y,visual_label,behavior,parameter,modifiers,purpose,usage_notes,source
+﻿layer,x,y,visual_label,behavior,parameter,modifiers,purpose,usage_notes,source
 0,0,0,Esc,Key Press,Escape,,,,canonical (frozen/critical)
 0,1,0,1,Key Press,1 and Bang,,,,canonical (frozen/critical)
 0,2,0,2,Key Press,2 and At,,,,canonical (frozen/critical)
@@ -287,9 +287,9 @@ layer,x,y,visual_label,behavior,parameter,modifiers,purpose,usage_notes,source
 2,5,0,Ctrl+T,Key Press,T,L Ctrl,New tab,"App: Browser (Chrome/Edge), importance=9.5",evolved
 2,7,0,Win+Ctrl+Ø,Key Press,SemiColon and Colon,L GUI+L Ctrl,Open PowerToys Workspaces editor,Personal host hotkey uses VK 0xC0; nb-NO physical ø key SC027 emits it.,manual review candidate
 2,8,0,Win+Shift+Ø,Key Press,SemiColon and Colon,L GUI+L Shift,Open FancyZones editor,Personal host hotkey uses VK 0xC0; nb-NO physical ø key SC027 emits it.,manual review candidate
-2,9,0,F13,Key Press,F13,,Open this PC’s primary workspace,Desktop alias: Charybdis Workspace - Primary.lnk; host-specific target,manual review candidate
-2,10,0,F14,Key Press,F14,,Open this PC’s split workspace,Desktop alias: Charybdis Workspace - Split.lnk; host-specific target,manual review candidate
-2,11,0,F15,Key Press,F15,,Open this PC’s full-screen workspace,Desktop alias: Charybdis Workspace - Full.lnk; host-specific target,manual review candidate
+2,9,0,F13,Key Press,F13,,Open this PC's full-screen workspace,Desktop alias: Charybdis Workspace - Full.lnk; host-specific target,manual review candidate
+2,10,0,F14,Key Press,F14,,Open this PC's split workspace,Desktop alias: Charybdis Workspace - Split.lnk; host-specific target,manual review candidate
+2,11,0,transparent,Transparent,,,,Spare after reserving full-screen and split workspace launch controls.,transparent
 2,12,0,transparent,Transparent,,,,Reserved; Task View remains available from L0 and has low post-layout usage.,transparent
 2,0,1,Shift+Delete,Key Press,Delete,L Shift,Permanent delete,"App: File Explorer, importance=0.45",evolved
 2,1,1,"Ctrl+,",Key Press,Comma and LessThan,L Ctrl,Settings,"App: Windows Terminal / PowerShell, importance=0.4",evolved
