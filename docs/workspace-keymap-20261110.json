@@ -29,7 +29,13 @@
   "personal_profiles": {
     "F13": "{c13b457c-2062-438a-b3c1-019260008347}",
     "F14": "{19ce47a5-b782-4787-9e17-73072c4f1232}",
-    "F15": "{EF2E4129-C3E0-4D84-B532-9B93D1ADED81}",
+    "F15": "{E7898CCE-D924-4567-A42D-AC803FEF0BA7}",
     "F16": "{263E9109-A154-4DFA-80DE-30F357FCEF01}"
+  },
+  "personal_youtube_window_handling": {
+    "reason": "PowerToys Workspaces does not match the existing Brave YouTube PWA window and launches another instance.",
+    "implementation": "F14 Split and F15 Browser omit YouTube from the PowerToys profile. AHK reuses the visible YouTube window (brave.exe) or opens the installed Brave Apps\\YouTube.lnk only if none exists, then positions it.",
+    "Split": "leftmost monitor, right half",
+    "Browser": "leftmost monitor, maximized"
   }
 }

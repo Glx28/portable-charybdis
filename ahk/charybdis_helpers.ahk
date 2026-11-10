@@ -30,6 +30,7 @@ global LastShortcutApp := ""
 global WorkspaceLaunchBusy := false
 global WorkspaceLaunchStartedAt := 0
 global WorkspaceLauncherUiSeen := false
+global WorkspaceLaunchPreset := ""
 global LastCoachShortcutKey := ""
 global LastCoachShortcutAt := ""
 global LastCoachShortcutId := 0
@@ -2601,7 +2602,7 @@ FindWorkspaceEntries(query) {
 }
 
 OpenSavedWorkspace(preset, key) {
-    global DebugMode, WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen
+    global DebugMode, WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen, WorkspaceLaunchPreset
     link := A_Desktop "\Charybdis Workspace - " preset ".lnk"
     if WorkspaceLaunchBusy {
         TouchAction("Workspace launch already in progress: " preset)
@@ -2630,6 +2631,7 @@ OpenSavedWorkspace(preset, key) {
         WorkspaceLaunchBusy := true
         WorkspaceLaunchStartedAt := A_TickCount
         WorkspaceLauncherUiSeen := false
+        WorkspaceLaunchPreset := preset
         Run('"' target '" ' arguments, workingDir, "", &launcherPid)
         if !launcherPid
             throw Error("PowerToys did not return a launcher process ID.")
@@ -2648,7 +2650,7 @@ OpenSavedWorkspace(preset, key) {
 }
 
 WatchWorkspaceLaunch() {
-    global WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen
+    global WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen, WorkspaceLaunchPreset
     if !WorkspaceLaunchBusy {
         SetTimer(WatchWorkspaceLaunch, 0)
         return
@@ -2663,8 +2665,69 @@ WatchWorkspaceLaunch() {
     if ((WorkspaceLauncherUiSeen && !uiRunning && !launcherRunning) || (!WorkspaceLauncherUiSeen && elapsed >= 8000) || elapsed >= 45000) {
         WorkspaceLaunchBusy := false
         SetTimer(WatchWorkspaceLaunch, 0)
+        preset := WorkspaceLaunchPreset
+        WorkspaceLaunchPreset := ""
+        if preset = "Browser" || preset = "Split"
+            SetTimer(() => ArrangeYouTubeForWorkspace(preset), -400)
         if elapsed >= 45000
             TouchAction("Workspace launch status timed out; check PowerToys")
+    }
+}
+
+FindYouTubeWindow() {
+    for hwnd in WinGetList("ahk_exe brave.exe") {
+        try title := WinGetTitle("ahk_id " hwnd)
+        catch
+            continue
+        if InStr(title, "YouTube")
+            return hwnd
+    }
+    return 0
+}
+
+ArrangeYouTubeForWorkspace(preset) {
+    hwnd := FindYouTubeWindow()
+    if !hwnd {
+        shortcut := A_StartMenu "\Brave Apps\YouTube.lnk"
+        if !FileExist(shortcut) {
+            TouchAction("Workspace YouTube shortcut missing")
+            ShowNotice("Charybdis workspace", "Could not find the installed Brave YouTube shortcut.")
+            return
+        }
+        try Run('"' shortcut '"')
+        catch as err {
+            TouchAction("Workspace YouTube launch failed")
+            ShowNotice("Charybdis workspace", err.Message)
+            return
+        }
+
+        deadline := A_TickCount + 12000
+        while !hwnd && A_TickCount < deadline {
+            Sleep 250
+            hwnd := FindYouTubeWindow()
+        }
+    }
+
+    if !hwnd {
+        TouchAction("Workspace YouTube window not found")
+        ShowNotice("Charybdis workspace", "Brave YouTube did not open.")
+        return
+    }
+
+    window := "ahk_id " hwnd
+    try {
+        WinRestore(window)
+        if preset = "Browser" {
+            WinMove(-8, -8, 1936, 1096, window)
+            WinMaximize(window)
+        } else {
+            WinMove(953, 0, 974, 1087, window)
+        }
+        WinActivate(window)
+        TouchAction("Workspace reused Brave YouTube: " preset)
+    } catch as err {
+        TouchAction("Workspace YouTube placement failed: " preset)
+        ShowNotice("Charybdis workspace", err.Message)
     }
 }
 
