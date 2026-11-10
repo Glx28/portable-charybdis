@@ -1,88 +1,53 @@
 # Charybdis workspace controls
 
-## Shared L2 right-hand pool
+Version: `L2-direct-workspaces-20261110`
 
-These positions are identical on every host. Existing L1 utilities remain on L1; L2 adds workspace and work-app actions.
+## Current L2 workspace map
 
-| L2 position | Output | Purpose |
-|---|---|---|
-| x7,y0 | Win+Ctrl+Ø | PowerToys Workspaces editor |
-| x8,y0 | Win+Shift+Ø | PowerToys FancyZones editor |
-| x9,y0 | F13 | Launch this host's Full workspace |
-| x10,y0 | F14 | Launch this host's Split workspace |
-| x11,y0 | Ctrl+Shift+E | M-Files check in |
-| x12,y0 | Ctrl+E | M-Files check out / Teams search |
-| x7,y1 | Ctrl+G | M-Files go to vault |
-| x8,y1 | Alt+Enter | M-Files properties |
-| x9,y1 | Ctrl+N | New M-Files item / Teams chat |
-| x10,y1 | Ctrl+O | Open M-Files item |
-| x11,y1 | Ctrl+Shift+D | M-Files download copy |
-| x12,y1 | Ctrl+Shift+C | M-Files copy object link |
-| x7,y2 | Ctrl+Shift+X | Expand Teams compose box |
-| x8,y2 | Shift+Enter | New line in Teams message |
-| x9,y2 | Ctrl+Enter | Send expanded Teams message |
-| x10,y2 | Ctrl+Shift+M | Toggle Teams call mute |
-| x11,y2 | Ctrl+R | Outlook reply |
-| x12,y2 | Ctrl+Shift+R | Outlook reply all |
-| x9,y3 | Ctrl+PageUp | Previous Excel worksheet |
-| x10,y3 | Ctrl+PageDown | Next Excel worksheet |
-| x11,y3 | Ctrl+1 | Excel Format Cells |
-| x12,y3 | Ctrl+H | Excel Find and Replace |
+Fill the easy y2 row before using y1. The shared actions lead; work-only actions follow. No workspace shortcut uses y0.
 
-For the two editor shortcuts, configure each host's PowerToys hotkeys to the same keycode and modifiers. On a Norwegian layout the physical `ø` key maps to keycode `0xC0`; Ctrl and Shift distinguish the editor actions.
+| L2 position | Coach label | HID to AHK | Personal PC | Work PC |
+|---|---|---|---|---|
+| x7,y2 | 🔁 Full | F13 | Full-screen work context | M-Files/Copilot full-screen context |
+| x8,y2 | 🔁 Split | F14 | Split browser/web-app context | M-Files/Copilot/Jira split context |
+| x9,y2 | 🔁 Browser | F15 | Brave YouTube + ChatGPT web apps | Edge + Copilot + Jira |
+| x10,y2 | 🔁 Collab | F16 | Discord collaboration | Jira + Salesforce + Teams |
+| x11,y2 | 💼 Admin | F17 | Work-only slot | M-Files Admin + Copilot + Jira |
+| x12,y2 | 💼 Excel | F18 | Work-only slot | Excel + Copilot + Teams |
+| x7,y1 | 💼 M-Files | F19 | Work-only slot | M-Files + Copilot + Teams |
+| x8,y1 | 💼 Jira+MF | F20 | Work-only slot | Jira + Admin + two M-Files windows |
 
-## Host-local workspace aliases
+🔁 means the same physical key invokes a same-purpose workspace on both PCs. 💼 means work-PC-only workspace. Coach shows these names and icons; F13–F20 are internal HID transport keys. L2 Workspaces and FancyZones editor actions remain x7,y0/x8,y0. Preserve L0, L1, L7, thumb keys, and the Norwegian cluster, including backslash.
 
-The portable AHK helper resolves these Desktop links at runtime:
+## Workspace launcher behavior
 
-- `Charybdis Workspace - Full.lnk`
-- `Charybdis Workspace - Split.lnk`
+The portable AHK helper resolves Desktop shortcuts named `Charybdis Workspace - <name>.lnk` to host-local PowerToys workspace IDs. It checks the launcher path and GUID arguments, reports missing aliases, and blocks overlapping launches while PowerToys is launching a workspace. Modified F-key chords remain reserved for Coach. Each PC keeps its own workspace IDs and monitor geometry; do not put host IDs in ZMK.
 
-Each link points to that host's own PowerToys Workspace ID. Reuse the existing L2 bindings at x9,y0 (bare F13 → Full alias) and x10,y0 (bare F14 → Split alias); do not add duplicate Full/Split keys. Verify those outputs in the actual flashed layout and the portable AHK route. The same positions and F13/F14 outputs must work on both computers; only the alias targets and workspace IDs differ by host. No host-specific IDs go into ZMK. If an alias is missing, AHK shows a notice and does not launch a fallback workspace.
+PowerToys profiles use **Move existing windows**. Existing apps are repositioned; missing apps are launched. Do not include File Explorer, Settings, or PowerToys windows as workspace targets. M-Files Explorer (MFDesktop) is a valid work app.
 
-Enable **Move existing windows** on both profiles. Existing apps are moved to their saved positions; apps missing from the desktop are launched. Reuse the existing Full/Split aliases by retargeting them to each host's local workspace IDs—do not create another keyboard shortcut manager or duplicate launcher links. [PowerToys Workspaces behavior](https://learn.microsoft.com/windows/powertoys/workspaces).
+## Personal PC profile status
 
-Create work-PC profiles through PowerToys Workspaces on that host so saved monitor IDs and geometry come from that computer. The normal design target is always three monitors. The personal PC currently has one monitor attached only temporarily; do not design or capture a one-monitor workspace.
+- **Full:** Edge stays on the left monitor, Brave on the center, Terminal on the right.
+- **Split:** Edge stays left; ChatGPT Edge PWA and YouTube Brave PWA share the center; Terminal stays right.
+- **Browser:** only YouTube (Brave) and ChatGPT (Edge PWA) in the saved center halves. Left Edge/Coach and right Terminal are excluded.
+- **Collab:** existing Discord collaboration profile.
 
-The personal PC now has host-local profiles behind the existing Full/Split aliases:
+Browser profile `{E7898CCE-D924-4567-A42D-AC803FEF0BA7}` was corrected directly in PowerToys `workspaces.json`. The matching Desktop alias points to this ID. Its apps were tested: both web apps opened in the center halves while normal Edge and Terminal remained in place. The launcher was tested via F15; an immediate duplicate was rejected while launch was in progress. Full, Split, and Collab launches have not each been retested in this session.
 
-- **Full:** Edge on the left, Brave full-screen on the center display, Terminal full-screen on the right.
-- **Split:** Edge on the left, ChatGPT Edge PWA and YouTube Brave PWA side by side on the center display, Terminal on the right.
+## Work PC profile status
 
-The saved `di br te`, `di br te split`, and temporary capture remain unchanged. The work-PC profiles still need to be created on that host from its own three-monitor setup.
+Profiles already exist on the work PC and IDs remain host-local. The portable host helper/aliases need to be updated there using [work-pc-workspace-handoff.md](work-pc-workspace-handoff.md). That handoff captures the three-monitor arrangement, exact profile IDs, window groupings, current placement decision, and host-side steps. Do not design for the temporary one-monitor state.
 
-## More workspaces and L2 access
+The profile groupings use the work usage logs: frequent Edge/Teams transitions; M-Files Desktop with Copilot; and Teams with Excel. Teams stays in right-side splits, not the middle full-screen slot. The left Edge/Coach setup stays outside captures except when a profile deliberately places another app full-screen there. Ignore File Explorer as a workspace target.
 
-Full and Split are the shared direct actions, not a limit on useful workspace count. Return a ranked suggestion list for additional distinct workspaces justified by logger use or recurring tasks. First work-PC candidate: **M-Files Admin / configuration**, distinct from the Full/Split overview profiles. Refine its app grouping from current work-PC logs and co-use data.
+## Why the earlier triggers failed
 
-For each accepted additional workspace, propose a direct L2 right-hand position and HID output with a host-local desktop alias. Keep the same physical position and HID purpose on both computers. If no position remains, move the lowest-use non-essential L2 pool action to a useful layer other than L1 or protected L7; preserve it instead of overwriting it. Keep F13/F14 fixed for Full/Split.
+The original F15/F16 aliases pointed at captured profiles containing Discord, generic Edge, and Terminal rather than the intended browser/web apps. Multiple workspace keys were also pressed within seconds, overlapping PowerToys launches. The usage logger proved that HID keys fired, not that apps opened. The Browser profile and AHK launch serialization now address both issues.
 
-If additional profiles outnumber direct L2 keys, use one L2 binding to open the existing portable AHK launcher as a keyboard-selectable list of host-local workspace aliases. Extend that helper rather than adding another shortcut manager. Audit F15 and all candidate positions for conflicts before assignment. Update the shared layout candidate, Coach/export data, AHK alias routing, and both host handoffs together; keep the candidate unapplied until reviewed.
+## Layout application status
 
-On each host, set the Workspaces editor hotkey to Win+Ctrl+Ø and the FancyZones editor hotkey to Win+Shift+Ø, using the same keycode and modifiers. The personal PC currently has these distinct bindings at keycode 192. Confirm the work PC uses the Norwegian keyboard layout so the physical Ø key resolves to that keycode. Keep FancyZones `windowSwitching` disabled on both hosts so its Win+PgUp/PgDn same-zone action does not intercept the existing spatial focus controls; this is already disabled on the personal PC.
-
-## Placement constraints
-
-- Personal PC: keep Terminal on the right monitor and preserve the existing left Edge placement.
-- Work PC: keep the existing Edge/Coach setup on the left monitor outside workspace captures.
-- Ignore File Explorer as a workspace target.
-- Save at least one full-screen arrangement and one split-window arrangement on each PC.
-- Work PC application/monitor assignments must be confirmed on that computer before saving its profiles.
-- Create host-local `Full` and `Split` PowerToys profiles, then point the identically named Desktop aliases at each host's own workspace IDs.
-
-## Provisional work-PC profile pairing
-
-The imported work log records frequent Edge↔Teams focus transitions (107 and 106 in the two directions). In co-use windows, M-Files Desktop appeared with M365 Copilot 35 times, and Teams with Excel 24 times. Starting arrangement to capture on the work PC:
-
-- **Full:** leave Edge/Coach on the left untouched; place Teams on the adjacent monitor and M-Files Desktop on the other monitor.
-- **Split:** keep Edge/Coach untouched; split Teams with Excel on one remaining monitor, and M-Files Desktop with M365 Copilot on the other.
-
-These are starting pairings from logger events, not measured active time. Confirm on the work machine that the chosen windows and monitor positions match the actual work setup before saving either profile. Exclude File Explorer from both captures.
-
-## L2 shortcut evidence
-
-The work log recorded 3,135 Teams, 4,508 M-Files Desktop, 3,404 Excel, and 858 Outlook events in its post-layout window. Teams `Shift+Enter` appeared 16 times. The remaining app-specific actions are proposed learning-pool bindings, not claims that those exact shortcuts already occur in the logs. The L2 right non-thumb area is populated; the L2 layer-access keys remain at x7/x8,y3 and thumb positions remain unchanged. Reassess this pool after the user exercises it on both hosts.
+Candidate and Coach data: `L2-direct-workspaces-20261110`. Applied and saved through the existing connected ZMK Studio tab on 2026-11-10. ZMK verification: `37 pass, 0 fail`. Shared actions occupy x7–x10,y2, work-only actions x11–x12,y2, then x7–x8,y1. Existing L2 application shortcuts were moved as part of the layout; L0/L1/L7 remain unchanged.
 
 ## Usage evidence
 
-The personal-host log covers 2026-11-06 through 2026-11-09 (19,024 events); its most-recorded apps include Edge (5,856), Windows Terminal (3,444), Discord (1,501), and PowerToys Settings (1,186). The imported work-host log covers 2026-10-27 through 2026-10-31 (28,236 events); its most-recorded apps include Edge (7,063), M-Files Desktop (4,508), Excel (3,404), Teams (3,135), and M365 Copilot (2,394). Counts are logger events, not active time. L2 had 213 personal-host events and 31 imported work-host events in these windows, mostly Norwegian-symbol and layer events. This new L2 pool is a trial; future per-layer use decides what stays.
+Personal-host logs cover 2026-11-06 through 2026-11-09 (19,024 events): Edge 5,856; Windows Terminal 3,444; Discord 1,501; PowerToys Settings 1,186. Imported work-host logs cover 2026-10-27 through 2026-10-31 (28,236 events): Edge 7,063; M-Files Desktop 4,508; Excel 3,404; Teams 3,135; M365 Copilot 2,394. These are logger events, not active time. The workspace keys are a usage trial; future per-layer usage determines what stays.

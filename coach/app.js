@@ -3197,6 +3197,14 @@
         workflowState.query = e.target.value || "";
         renderWorkflow();
       });
+      els.workflowSearch.addEventListener("keydown", (e) => {
+        if (e.key !== "Escape") return;
+        e.preventDefault();
+        e.stopPropagation();
+        els.workflowSearch.value = "";
+        workflowState.query = "";
+        renderWorkflow();
+      });
     }
     const saved = localStorage.getItem("charybdis-workflow-app");
     if (saved && els.workflowAppSelect) {
@@ -3238,6 +3246,10 @@
       "l2-workspaces-zmk-20261109": {
         path: "./data/review_candidates/l2_workspaces_profiles_zmk_20261109.csv",
         layer: "2"
+      },
+      "l2-workspaces-zmk-20261110": {
+        path: "./data/review_candidates/l2_workspace_controls_20261110.csv",
+        layer: "2"
       }
     };
     const reviewLayout = reviewLayouts[reviewId] || null;
@@ -3255,8 +3267,10 @@
     state.rows = normalizeRows(parseCsv(csvText));
     if (reviewLayout) {
       state.displayedLayer = reviewLayout.layer;
-      state.pinnedLayer = reviewLayout.layer;
-      state.layerPreviewLocked = true;
+      // Review views may start on a requested layer, but preview stays live.
+      // Locking is always an explicit user action.
+      state.pinnedLayer = null;
+      state.layerPreviewLocked = false;
     }
     state.layoutSpec = layoutSpec || {};
     state.hostKeyboard = hostKeyboard;

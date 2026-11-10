@@ -53,9 +53,36 @@ Coach layer tracking works automatically over USB. Firmware sends layer changes 
 - `ahk\charybdis_helpers.ahk` — desktop coach, shortcut/mouse logger, and beacon state bridge
 - `keyboard-data\` — Norwegian keyboard map and host preferences used by the helper
 - `python\coach_http_server.py` — restricted loopback-only web server
+- `python\workflow_observations.py` — metadata-only workflow improvement log
+- `python\analyze_workflow_usage.py` — layer-aware shortcut/sequence report
 - `Start-Charybdis.ps1` — portable runtime setup, start/stop, status, and sign-in shortcut
 
 No other Charybdis repository is read or required. No layout training or firmware build occurs.
+
+## Workflow optimization
+
+See [WORKFLOW_OPTIMIZATION_PLAN.md](WORKFLOW_OPTIMIZATION_PLAN.md) for the
+usage-led implementation sequence and acceptance checks. Workflow observations
+are stored locally under `runtime\workflow-optimization\`; record task labels
+and improvement metadata only, never prompts, response text, customer content,
+or clipboard contents. Example:
+
+Use `python python\workflow_observations.py --help` for fields. Record only an
+abstract task label and friction/improvement metadata.
+
+Analyze only logs from the applied layout onward. `--since` is required so an
+old usage log cannot silently influence a new layout:
+
+```powershell
+python python\analyze_workflow_usage.py `
+  --log runtime\shortcut_usage.jsonl `
+  --since 2026-11-06
+```
+
+The report includes per-layer actions, app context, adjacent shortcut pairs,
+Norwegian symbol outputs matched through the nb-NO host map, current binding
+matches, and active-day coverage. Active days do not imply continuous logger
+uptime.
 
 ## Runtime sources
 

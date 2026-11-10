@@ -27,6 +27,9 @@ global ShortcutLogPath := RuntimeDir "\shortcut_usage.jsonl"
 global LastShortcutKeys := ""
 global LastShortcutTime := 0
 global LastShortcutApp := ""
+global WorkspaceLaunchBusy := false
+global WorkspaceLaunchStartedAt := 0
+global WorkspaceLauncherUiSeen := false
 global LastCoachShortcutKey := ""
 global LastCoachShortcutAt := ""
 global LastCoachShortcutId := 0
@@ -133,6 +136,8 @@ global CoachLegend := ""
 global LauncherGui := ""
 global LauncherEdit := ""
 global LauncherHint := ""
+global LauncherPrompt := ""
+global LauncherMode := "app"
 
 if (A_Args.Length && A_Args[1] = "--self-test-event-layer") {
     ExitApp(SelfTestEventLayerAttribution() ? 0 : 1)
@@ -937,9 +942,10 @@ RegisterAllHooks() {
             }
         }
     }
-    ; Norwegian physical symbol cluster, including æ/ø/å, backslash, and ISO's extra key.
+    ; Norwegian physical symbol cluster, including æ/ø/å and ISO's extra key.
     ; Scan codes track emitted physical positions across keyboard layouts.
     ; AltGr outputs such as @ continue through the modifier hooks above.
+    ; SC00D is the HID Equal/Plus physical key; on nb-NO its unshifted output is backslash.
     for key in ["SC00C", "SC00D", "SC01A", "SC01B", "SC027", "SC028", "SC029", "SC02B", "SC033", "SC034", "SC035", "SC056"] {
         try {
             Hotkey "~" key, LogNorwegianPhysicalCallback
@@ -1280,8 +1286,8 @@ LogNorwegianSymbolUsage(hotkeyName, keys, layer) {
     shifted := InStr(lowerHotkey, "+") > 0
     clusterKey := physicalKey = "[" || physicalKey = "]" || physicalKey = "``"
         || physicalKey = "-" || physicalKey = "=" || physicalKey = "\"
-        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC00C" || physicalKey = "SC00D"
-        || physicalKey = "SC01A" || physicalKey = "SC01B" || physicalKey = "SC027"
+        || physicalKey = ";" || physicalKey = "'" || physicalKey = "SC00C"
+        || physicalKey = "SC00D" || physicalKey = "SC01A" || physicalKey = "SC01B" || physicalKey = "SC027"
         || physicalKey = "SC028" || physicalKey = "SC029" || physicalKey = "SC02B"
         || physicalKey = "SC033" || physicalKey = "SC034" || physicalKey = "SC035"
         || physicalKey = "SC056" || (shifted && RegExMatch(physicalKey, "^\d$"))
@@ -2448,11 +2454,11 @@ IsIgnoredActiveApp(exe, title) {
 }
 
 CreateLauncherGui() {
-    global LauncherGui, LauncherEdit, LauncherHint
+    global LauncherGui, LauncherEdit, LauncherHint, LauncherPrompt
     LauncherGui := Gui("+AlwaysOnTop +ToolWindow -MinimizeBox", "Charybdis Launcher")
     LauncherGui.BackColor := "11161C"
     LauncherGui.SetFont("s11 cF2F4F8", "Segoe UI")
-    LauncherGui.AddText("w560", "Type an app alias, then Enter. Shift+Enter or !prefix forces a new instance.")
+    LauncherPrompt := LauncherGui.AddText("w560", "Type an app alias, then Enter. Shift+Enter or !prefix forces a new instance.")
     LauncherEdit := LauncherGui.AddEdit("w560 h30")
     LauncherGui.SetFont("s9 cAAB4C0", "Segoe UI")
     LauncherHint := LauncherGui.AddText("w560 h64", LauncherHelpText())
@@ -2467,7 +2473,14 @@ HandleLauncherClose(*) {
 }
 
 LauncherHelpText(prefix := "") {
-    global AppEntries
+    global AppEntries, LauncherMode
+    if LauncherMode = "workspace" {
+        names := []
+        for entry in GetWorkspaceEntries()
+            names.Push(entry["name"])
+        joined := names.Length ? JoinList(names, ", ") : "No PowerToys workspace shortcuts found on Desktop"
+        return (prefix ? prefix "`n" : "") "Workspaces: " joined
+    }
     names := []
     for app in AppEntries {
         if app["aliases"].Length {
@@ -2479,8 +2492,22 @@ LauncherHelpText(prefix := "") {
 }
 
 UpdateLauncherHint() {
-    global LauncherEdit, LauncherHint
+    global LauncherEdit, LauncherHint, LauncherMode
     query := Trim(LauncherEdit.Value)
+    if LauncherMode = "workspace" {
+        matches := FindWorkspaceEntries(query)
+        if matches.Length = 1 {
+            LauncherHint.Text := "Open workspace: " matches[1]["name"]
+        } else if matches.Length > 1 {
+            names := []
+            for entry in matches
+                names.Push(entry["name"])
+            LauncherHint.Text := "Choose a more specific name: " JoinList(names, ", ")
+        } else {
+            LauncherHint.Text := LauncherHelpText(query ? "No workspace matches '" query "'." : "")
+        }
+        return
+    }
     app := FindAppByQuery(query)
     if IsObject(app) {
         LauncherHint.Text := app["id"] ": " app["notes"]
@@ -2489,9 +2516,13 @@ UpdateLauncherHint() {
     }
 }
 
-ShowLauncher() {
-    global LauncherGui, LauncherEdit, LauncherVisible
-    TouchAction("Launcher")
+ShowLauncher(workspaceMode := false) {
+    global LauncherGui, LauncherEdit, LauncherVisible, LauncherMode, LauncherPrompt
+    LauncherMode := workspaceMode ? "workspace" : "app"
+    LauncherPrompt.Text := workspaceMode
+        ? "Type a saved PowerToys workspace name, then Enter."
+        : "Type an app alias, then Enter. Shift+Enter or !prefix forces a new instance."
+    TouchAction(workspaceMode ? "Workspace picker" : "Launcher")
     mon := GetMouseMonitor()
     MonitorGetWorkArea(mon, &l, &t, &r, &b)
     x := l + Round((r - l - 600) / 2)
@@ -2504,6 +2535,10 @@ ShowLauncher() {
     WriteCoachState(true)
 }
 
+ShowWorkspacePicker() {
+    ShowLauncher(true)
+}
+
 HideLauncher() {
     global LauncherGui, LauncherVisible
     LauncherGui.Hide()
@@ -2512,7 +2547,7 @@ HideLauncher() {
 }
 
 SubmitLauncher(forceNew := false) {
-    global LauncherEdit
+    global LauncherEdit, LauncherMode
     query := Trim(LauncherEdit.Value)
     if query = "" {
         HideLauncher()
@@ -2523,7 +2558,114 @@ SubmitLauncher(forceNew := false) {
         query := Trim(SubStr(query, 2))
     }
     HideLauncher()
+    if LauncherMode = "workspace" {
+        entries := FindWorkspaceEntries(query)
+        if entries.Length = 1 {
+            RunSafe("Open workspace " entries[1]["name"], '"' entries[1]["path"] '"')
+            LogShortcutUsage("F15", "Open workspace " entries[1]["name"])
+            TouchAction("Workspace: " entries[1]["name"])
+        } else {
+            TouchAction("Workspace picker: ambiguous or missing " query)
+            ShowNotice("Charybdis workspaces", entries.Length ? "Type a more specific workspace name." : "No matching PowerToys workspace shortcut found on Desktop.")
+        }
+        return
+    }
     LaunchOrMoveApp(query, forceNew)
+}
+
+GetWorkspaceEntries() {
+    entries := []
+    desktop := A_Desktop
+    shell := ComObject("WScript.Shell")
+    Loop Files desktop "\*.lnk", "F" {
+        path := A_LoopFileFullPath
+        try {
+            shortcut := shell.CreateShortcut(path)
+            target := StrLower(String(shortcut.TargetPath))
+            if InStr(target, "powertoys.workspaceslauncher.exe")
+                entries.Push(Map("name", RegExReplace(A_LoopFileName, "\.lnk$", ""), "path", path))
+        }
+    }
+    return entries
+}
+
+FindWorkspaceEntries(query) {
+    entries := GetWorkspaceEntries()
+    matches := []
+    needle := StrLower(Trim(query))
+    for entry in entries {
+        if needle = "" || InStr(StrLower(entry["name"]), needle)
+            matches.Push(entry)
+    }
+    return matches
+}
+
+OpenSavedWorkspace(preset, key) {
+    global DebugMode, WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen
+    link := A_Desktop "\Charybdis Workspace - " preset ".lnk"
+    if WorkspaceLaunchBusy {
+        TouchAction("Workspace launch already in progress: " preset)
+        ShowNotice("Charybdis workspaces", "Wait for the current PowerToys workspace launch to finish.")
+        return
+    }
+    if !FileExist(link) {
+        TouchAction("Workspace alias missing: " preset)
+        ShowNotice("Charybdis workspaces", "Missing Desktop shortcut: " link)
+        LogShortcutUsage(key, "Workspace launch failed: missing " preset " alias")
+        return
+    }
+    if DebugMode {
+        TouchAction("Workspace debug: " preset)
+        ShowNotice("Charybdis debug", "Workspace: " preset, 2)
+        return
+    }
+
+    try {
+        FileGetShortcut(link, &target, &workingDir, &arguments)
+        if !FileExist(target)
+            throw Error("Workspace launcher not found: " target)
+        if !RegExMatch(arguments, "i)^\{[0-9a-f-]{36}\}\s+1$")
+            throw Error("Invalid PowerToys workspace shortcut arguments: " arguments)
+
+        WorkspaceLaunchBusy := true
+        WorkspaceLaunchStartedAt := A_TickCount
+        WorkspaceLauncherUiSeen := false
+        Run('"' target '" ' arguments, workingDir, "", &launcherPid)
+        if !launcherPid
+            throw Error("PowerToys did not return a launcher process ID.")
+
+        label := "Open this PC's " StrLower(preset) " workspace"
+        LogShortcutUsage(key, label " (PowerToys launch started)")
+        TouchAction("Workspace launch started: " preset)
+        SetTimer(WatchWorkspaceLaunch, 250)
+    } catch as err {
+        WorkspaceLaunchBusy := false
+        SetTimer(WatchWorkspaceLaunch, 0)
+        TouchAction("Workspace launch failed: " preset)
+        LogShortcutUsage(key, "Workspace launch failed: " preset)
+        ShowNotice("Charybdis workspaces", err.Message)
+    }
+}
+
+WatchWorkspaceLaunch() {
+    global WorkspaceLaunchBusy, WorkspaceLaunchStartedAt, WorkspaceLauncherUiSeen
+    if !WorkspaceLaunchBusy {
+        SetTimer(WatchWorkspaceLaunch, 0)
+        return
+    }
+
+    uiRunning := ProcessExist("PowerToys.WorkspacesLauncherUI.exe")
+    launcherRunning := ProcessExist("PowerToys.WorkspacesLauncher.exe")
+    if uiRunning
+        WorkspaceLauncherUiSeen := true
+
+    elapsed := A_TickCount - WorkspaceLaunchStartedAt
+    if ((WorkspaceLauncherUiSeen && !uiRunning && !launcherRunning) || (!WorkspaceLauncherUiSeen && elapsed >= 8000) || elapsed >= 45000) {
+        WorkspaceLaunchBusy := false
+        SetTimer(WatchWorkspaceLaunch, 0)
+        if elapsed >= 45000
+            TouchAction("Workspace launch status timed out; check PowerToys")
+    }
 }
 
 LaunchOrMoveApp(query, forceNew := false) {
@@ -2676,6 +2818,17 @@ JoinList(items, separator) {
 ; Alt+Space freed for PowerToys Command Palette (Win+Alt+Space default).
 ; AHK launcher moved to Ctrl+Alt+Space to avoid conflict.
 ^!Space::ShowLauncher()
+
+; Shared ZMK positions. Each PC owns local PowerToys workspace shortcuts.
+; F13-F16 are shared workspace types; F17-F20 are work-PC additions.
+F13::OpenSavedWorkspace("Full", "F13")
+F14::OpenSavedWorkspace("Split", "F14")
+F15::OpenSavedWorkspace("Browser", "F15")
+F16::OpenSavedWorkspace("Collaboration", "F16")
+F17::OpenSavedWorkspace("M-Files Admin", "F17")
+F18::OpenSavedWorkspace("Excel Teams", "F18")
+F19::OpenSavedWorkspace("M-Files Teams", "F19")
+F20::OpenSavedWorkspace("Jira M-Files Admin", "F20")
 
 ; =========
 ; Bluetooth HID coach beacons
@@ -2889,31 +3042,14 @@ Esc::HideLauncher()
 #HotIf
 
 ; Norwegian ø/æ/å are direct on base layer (L0 11,2 / 12,2 / 12,1) via Windows Norwegian layout.
-; Bare F13-F15 launch this PC's saved PowerToys workspace aliases.
-; Modified F13-F15 chords remain reserved for Coach beacon transport.
-OpenSavedWorkspace(preset, key) {
-    desktopPath := A_Desktop "\Charybdis Workspace - " preset ".lnk"
-    actionName := "Open this PC's " StrLower(preset) " workspace"
-    if !FileExist(desktopPath) {
-        ShowNotice("Charybdis workspace", "Missing Desktop shortcut: " desktopPath, 5)
-        return
-    }
-    try {
-        RunSafe(actionName, '"' desktopPath '"')
-        LogShortcutUsage(key, actionName)
-    } catch as err {
-        ShowNotice("Charybdis workspace", err.Message, 5)
-    }
-}
-F13::OpenSavedWorkspace("Full", "F13")
-F14::OpenSavedWorkspace("Split", "F14")
+; Bare F13-F15 launch host-local workspaces. Modified F13-F15 Coach chords remain unchanged.
 
 ; =========
 ; Input helpers
 ; =========
-F16::SendSafe("Windows input switch", "#{Space}")
-F17::SendSafe("Chinese/Pinyin IME toggle", "^{Space}")
-F18::SendSafe("Japanese / next input method", "#{Space}")
+^F16::SendSafe("Windows input switch", "#{Space}")
+^F17::SendSafe("Chinese/Pinyin IME toggle", "^{Space}")
+^F18::SendSafe("Japanese / next input method", "#{Space}")
 
 ; =========
 ; Optional global launch helpers
@@ -2929,8 +3065,8 @@ F18::SendSafe("Japanese / next input method", "#{Space}")
 ; VS Code
 ; =========
 #HotIf WinActive("ahk_exe Code.exe")
-F19::SendSafe("VS Code Quick Open", "^p")
-F20::SendSafe("VS Code Command Palette", "^+p")
+^F19::SendSafe("VS Code Quick Open", "^p")
+^F20::SendSafe("VS Code Command Palette", "^+p")
 F21::SendSafe("VS Code Toggle Terminal", "^``")
 F22::SendSafe("VS Code Toggle Sidebar", "^b")
 F23::SendSafe("VS Code Explorer", "^+e")
@@ -2941,8 +3077,8 @@ F24::SendSafe("VS Code Search", "^+f")
 ; Edge + Vimium + Proton Pass
 ; =========
 #HotIf WinActive("ahk_exe msedge.exe")
-F19::SendSafe("Edge address bar", "^l")
-F20::SendSafe("Edge search tabs", "^+a")
+^F19::SendSafe("Edge address bar", "^l")
+^F20::SendSafe("Edge search tabs", "^+a")
 F21::SendSafe("Edge reopen closed tab", "^+t")
 F22::SendSafe("Edge favorites", "^+o")
 F23::SendSafe("Proton Pass helper", "^+y")
@@ -2953,8 +3089,8 @@ F24::SendSafe("Edge downloads", "^j")
 ; Excel
 ; =========
 #HotIf WinActive("ahk_exe EXCEL.EXE")
-F19::SendSafe("Excel edit cell", "{F2}")
-F20::SendSafe("Excel repeat / absolute reference", "{F4}")
+^F19::SendSafe("Excel edit cell", "{F2}")
+^F20::SendSafe("Excel repeat / absolute reference", "{F4}")
 F21::SendSafe("Excel toggle filters", "^+l")
 F22::SendSafe("Excel AutoSum", "!=")
 F23::SendSafe("Excel previous sheet", "^{PgUp}")
@@ -2965,8 +3101,8 @@ F24::SendSafe("Excel next sheet", "^{PgDn}")
 ; Outlook
 ; =========
 #HotIf WinActive("ahk_exe OUTLOOK.EXE") || WinActive("ahk_exe olk.exe") || WinActive("Outlook")
-F19::SendSafe("Outlook new item", "^n")
-F20::SendSafe("Outlook reply", "^r")
+^F19::SendSafe("Outlook new item", "^n")
+^F20::SendSafe("Outlook reply", "^r")
 F21::SendSafe("Outlook reply all", "^+r")
 F22::SendSafe("Outlook forward", "^f")
 F23::SendSafe("Outlook search", "^e")
@@ -2977,8 +3113,8 @@ F24::SendSafe("Outlook mail view", "^1")
 ; Teams
 ; =========
 #HotIf WinActive("ahk_exe ms-teams.exe") || WinActive("ahk_exe Teams.exe") || WinActive("Microsoft Teams")
-F19::SendSafe("Teams search", "^e")
-F20::SendSafe("Teams mute toggle", "^+m")
+^F19::SendSafe("Teams search", "^e")
+^F20::SendSafe("Teams mute toggle", "^+m")
 F21::SendSafe("Teams camera toggle", "^+o")
 F22::SendSafe("Teams share tray", "^+e")
 F23::SendSafe("Teams raise hand", "^+k")
@@ -2989,8 +3125,8 @@ F24::SendSafe("Teams open settings", "^,")
 ; M-Files
 ; =========
 #HotIf WinActive("M-Files") || WinActive("ahk_exe MFStatus.exe") || WinActive("ahk_exe MFClient.exe")
-F19::SendSafe("M-Files search", "^f")
-F20::SendSafe("M-Files refresh", "{F5}")
+^F19::SendSafe("M-Files search", "^f")
+^F20::SendSafe("M-Files refresh", "{F5}")
 F21::SendSafe("M-Files properties", "!{Enter}")
 F22::SendSafe("M-Files back", "!{Left}")
 F23::SendSafe("M-Files forward", "!{Right}")
@@ -3001,8 +3137,8 @@ F24::SendSafe("M-Files focus address/search", "^l")
 ; Generic fallback
 ; =========
 #HotIf
-F19::SendSafe("Generic app search", "^f")
-F20::SendSafe("Generic command/menu search", "^+p")
+^F19::SendSafe("Generic app search", "^f")
+^F20::SendSafe("Generic command/menu search", "^+p")
 F21::SendSafe("Generic clipboard history", "#v")
 F22::SendSafe("Generic snipping tool", "#+s")
 F23::SendSafe("Generic PowerToys Run", "#!{Space}")

@@ -1,0 +1,35 @@
+{
+  "version": "L2-direct-workspaces-20261110",
+  "personal": {
+    "F13": "Charybdis Workspace - Full.lnk",
+    "F14": "Charybdis Workspace - Split.lnk",
+    "F15": "Charybdis Workspace - Browser.lnk",
+    "F16": "Charybdis Workspace - Collaboration.lnk"
+  },
+  "work": {
+    "F13": "Charybdis Workspace - Full.lnk",
+    "F14": "Charybdis Workspace - Split.lnk",
+    "F15": "Charybdis Workspace - Browser.lnk",
+    "F16": "Charybdis Workspace - Collaboration.lnk",
+    "F17": "Charybdis Workspace - M-Files Admin.lnk",
+    "F18": "Charybdis Workspace - Excel Teams.lnk",
+    "F19": "Charybdis Workspace - M-Files Teams.lnk",
+    "F20": "Charybdis Workspace - Jira M-Files Admin.lnk"
+  },
+  "work_profiles": {
+    "F13": "{76A17134-86F3-4C27-B373-C60B35B6CD90}",
+    "F14": "{89F00F95-FBB0-40D3-BE20-33AEA154F2E3}",
+    "F15": "{E43EA5B1-0064-43E6-91F1-C19A96866D1D}",
+    "F16": "{810CAF85-0993-4A6C-9A36-B03BA1F2BAA9}",
+    "F17": "{004C4673-C81E-4025-A38A-370950F2DDC0}",
+    "F18": "{C5B74492-D902-4346-88C6-076E6D8C33EA}",
+    "F19": "{8E42B2C9-D90B-4050-AD3B-2057AB16428F}",
+    "F20": "{78CB235A-505F-4240-8E8C-889187428C5C}"
+  },
+  "personal_profiles": {
+    "F13": "{c13b457c-2062-438a-b3c1-019260008347}",
+    "F14": "{19ce47a5-b782-4787-9e17-73072c4f1232}",
+    "F15": "{EF2E4129-C3E0-4D84-B532-9B93D1ADED81}",
+    "F16": "{263E9109-A154-4DFA-80DE-30F357FCEF01}"
+  }
+}
