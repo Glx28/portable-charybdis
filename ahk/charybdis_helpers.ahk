@@ -3462,6 +3462,15 @@ FocusOutlineForegroundEvent(hwnd, event, objectId, childId, eventThread, eventTi
 }
 
 RenderFocusOutline() {
+    oldDpiContext := DllCall("SetThreadDpiAwarenessContext", "Ptr", -4, "Ptr")
+    try RenderFocusOutlinePhysical()
+    finally {
+        if oldDpiContext
+            DllCall("SetThreadDpiAwarenessContext", "Ptr", oldDpiContext, "Ptr")
+    }
+}
+
+RenderFocusOutlinePhysical() {
     global FocusOutlinePendingHwnd, FocusOutlineGuis
     hwnd := FocusOutlinePendingHwnd
     if (!hwnd || hwnd != DllCall("GetForegroundWindow", "Ptr"))
