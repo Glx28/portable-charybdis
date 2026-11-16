@@ -87,6 +87,10 @@ global SpatialFocusZOrder := 0
 global SpatialFocusCycleSignature := ""
 global SpatialFocusCycleHandles := []
 global SpatialFocusLastTarget := 0
+global FocusOutlineHook := 0
+global FocusOutlineCallback := 0
+global FocusOutlinePendingHwnd := 0
+global FocusOutlineGuis := []
 global ModifierErrorCandidate := Map("modifier", "", "time", 0)
 global LastShortcutLayer := "0"
 global LastShortcutOnLayerKeys := ""
@@ -153,6 +157,7 @@ BuildTrayMenu()
 CreateCoachGui()
 CreateLauncherGui()
 WriteCoachState()
+RegisterFocusOutline()
 coachUsbBeaconReady := RegisterCoachRawInput()
 
 TraySetIcon("shell32.dll", 44)
@@ -3432,6 +3437,83 @@ SpatialFocusActivate(hwnd) {
         return false
     try return DllCall("SetForegroundWindow", "Ptr", hwnd, "Int")
     finally DllCall("AttachThreadInput", "UInt", foregroundThread, "UInt", targetThread, "Int", false, "Int")
+}
+
+RegisterFocusOutline() {
+    global FocusOutlineHook, FocusOutlineCallback
+    FocusOutlineCallback := CallbackCreate(FocusOutlineForegroundEvent, "F", 6)
+    FocusOutlineHook := DllCall("SetWinEventHook", "UInt", 0x0003, "UInt", 0x0003,
+        "Ptr", 0, "Ptr", FocusOutlineCallback, "UInt", 0, "UInt", 0, "UInt", 0x0002, "Ptr")
+    if !FocusOutlineHook {
+        CallbackFree(FocusOutlineCallback)
+        FocusOutlineCallback := 0
+        return false
+    }
+    OnExit(CleanupFocusOutline)
+    return true
+}
+
+FocusOutlineForegroundEvent(hwnd, event, objectId, childId, eventThread, eventTime) {
+    global FocusOutlinePendingHwnd
+    if !hwnd
+        return
+    FocusOutlinePendingHwnd := hwnd
+    SetTimer(RenderFocusOutline, -45)
+}
+
+RenderFocusOutline() {
+    global FocusOutlinePendingHwnd, FocusOutlineGuis
+    hwnd := FocusOutlinePendingHwnd
+    if (!hwnd || hwnd != DllCall("GetForegroundWindow", "Ptr"))
+        return
+    if (!DllCall("IsWindowVisible", "Ptr", hwnd, "Int") || DllCall("IsIconic", "Ptr", hwnd, "Int"))
+        return
+
+    rect := Buffer(16, 0)
+    if !DllCall("GetWindowRect", "Ptr", hwnd, "Ptr", rect, "Int")
+        return
+    left := NumGet(rect, 0, "Int"), top := NumGet(rect, 4, "Int")
+    right := NumGet(rect, 8, "Int"), bottom := NumGet(rect, 12, "Int")
+    width := right - left, height := bottom - top
+    border := 5
+    if (width < 100 || height < 80)
+        return
+
+    if (FocusOutlineGuis.Length = 0) {
+        loop 4 {
+            outline := Gui("+AlwaysOnTop -Caption +ToolWindow +E0x08000020")
+            outline.BackColor := "FF3B00"
+            FocusOutlineGuis.Push(outline)
+        }
+    }
+
+    positions := [
+        [left, top, width, border],
+        [left, bottom - border, width, border],
+        [left, top + border, border, height - 2 * border],
+        [right - border, top + border, border, height - 2 * border]
+    ]
+    for index, outline in FocusOutlineGuis {
+        p := positions[index]
+        outline.Show("NA x" p[1] " y" p[2] " w" p[3] " h" p[4])
+    }
+    SetTimer(HideFocusOutline, -850)
+}
+
+HideFocusOutline() {
+    global FocusOutlineGuis
+    for outline in FocusOutlineGuis
+        outline.Hide()
+}
+
+CleanupFocusOutline(*) {
+    global FocusOutlineHook, FocusOutlineCallback, FocusOutlineGuis
+    if FocusOutlineHook
+        DllCall("UnhookWinEvent", "Ptr", FocusOutlineHook)
+    if FocusOutlineCallback
+        CallbackFree(FocusOutlineCallback)
+    for outline in FocusOutlineGuis
+        outline.Destroy()
 }
 
 SpatialFocusSort(items) {
