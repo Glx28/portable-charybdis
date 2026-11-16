@@ -7,6 +7,11 @@
 
 global RuntimeDir := RegExReplace(A_ScriptDir, "\\ahk$") "\runtime"
 global LogPath := RuntimeDir "\device_diagnostic.jsonl"
+global MouseOnly := false
+for argument in A_Args {
+    if argument = "--mouse-only"
+        MouseOnly := true
+}
 global HeldKeys := Map()
 global DeviceNames := Map()
 global MouseBuckets := Map()
@@ -28,7 +33,7 @@ SetTimer(CheckHeldKeys, 250)
 SetTimer(FlushMouseBuckets, 1000)
 SetTimer(FlushEvents, 500)
 OnExit(WriteShutdown)
-WriteEvent(Map("type", "tracker_start", "pid", DllCall("GetCurrentProcessId")))
+WriteEvent(Map("type", "tracker_start", "pid", DllCall("GetCurrentProcessId"), "mouse_only", MouseOnly))
 TraySetIcon("shell32.dll", 167)
 A_IconTip := "Charybdis device diagnostic active"
 A_TrayMenu.Delete()
@@ -36,18 +41,19 @@ A_TrayMenu.Add("Open diagnostic log", (*) => Run('notepad.exe "' LogPath '"'))
 A_TrayMenu.Add("Exit diagnostic tracker", (*) => ExitApp())
 
 RegisterInput() {
-    global MonitorGui
+    global MonitorGui, MouseOnly
     stride := 8 + A_PtrSize
-    devices := Buffer(stride * 2, 0)
+    usages := MouseOnly ? [2] : [6, 2]
+    devices := Buffer(stride * usages.Length, 0)
     ; Generic Desktop page: keyboard (usage 6) and mouse (usage 2).
-    for index, usage in [6, 2] {
+    for index, usage in usages {
         offset := (index - 1) * stride
         NumPut("UShort", 1, devices, offset)
         NumPut("UShort", usage, devices, offset + 2)
         NumPut("UInt", 0x2100, devices, offset + 4) ; INPUTSINK | DEVNOTIFY
         NumPut("Ptr", MonitorGui.Hwnd, devices, offset + 8)
     }
-    if !DllCall("RegisterRawInputDevices", "Ptr", devices, "UInt", 2, "UInt", stride, "Int")
+    if !DllCall("RegisterRawInputDevices", "Ptr", devices, "UInt", usages.Length, "UInt", stride, "Int")
         throw OSError()
 }
 
