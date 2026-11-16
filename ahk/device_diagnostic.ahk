@@ -108,8 +108,9 @@ HandleRawInput(wParam, lParam, msg, hwnd) {
     } else if kind = 0 && size >= data + 24 {
         buttons := NumGet(raw, data + 4, "UShort")
         wheelData := NumGet(raw, data + 6, "UShort")
-        dx := NumGet(raw, data + 8, "Int")
-        dy := NumGet(raw, data + 12, "Int")
+        ; RAWMOUSE: ulRawButtons at +8; lLastX/+12 and lLastY/+16.
+        dx := NumGet(raw, data + 12, "Int")
+        dy := NumGet(raw, data + 16, "Int")
         if !MouseBuckets.Has(device)
             MouseBuckets[device] := Map("device", deviceName, "dx", 0, "dy", 0, "packets", 0, "buttons", 0, "wheel", 0)
         bucket := MouseBuckets[device]
